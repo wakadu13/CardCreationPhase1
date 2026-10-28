@@ -259,6 +259,16 @@
   overflow: hidden;
 }
 
+.carte__galon > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.carte__domaine {
+  font-weight: 600;
+  opacity: 0.8;
+}
+
 .carte__galon::before,
 .carte__galon::after {
   content: '';

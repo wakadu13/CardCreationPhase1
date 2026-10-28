@@ -14,9 +14,15 @@ export function afficher(racine) {
         <div>
           <p class="surtitre">Compte</p>
           <h1>@${u.identifiant}</h1>
-          <p>${u.nomComplet ? `Certificat signé au nom de ${u.nomComplet}.` : 'Certificat pas encore signé.'}</p>
+          <p>
+            ${u.estAdmin
+              ? 'Compte organisateur.'
+              : u.certificatValide
+                ? `Certificat signé au nom de ${u.nomComplet}.`
+                : 'Certificat pas encore signé.'}
+          </p>
         </div>
-        ${u.certificatValide && html`<a class="btn btn--secondaire" href="#/certificat">Voir mon certificat</a>`}
+        ${!u.estAdmin && u.certificatValide && html`<a class="btn btn--secondaire" href="#/certificat">Voir mon certificat</a>`}
       </div>
       <div class="grille-2">
         <form class="panneau" data-form="mdp" novalidate>
@@ -35,8 +41,12 @@ export function afficher(racine) {
         </form>
 
         <form class="panneau zone-danger" data-form="suppression" novalidate>
-          <h2>Retirer mon consentement</h2>
-          <p>Supprime définitivement ton compte, tes cartes, tes signalements et ton certificat. Tu disparais aussi du registre.</p>
+          <h2>${u.estAdmin ? 'Supprimer mon compte' : 'Retirer mon consentement'}</h2>
+          <p>
+            ${u.estAdmin
+              ? 'Supprime définitivement ce compte organisateur. Impossible s’il est le dernier.'
+              : 'Supprime définitivement ton compte, tes cartes, tes signalements et ton certificat. Tu disparais aussi du registre. Tu ne pourras plus te connecter sans un nouveau compte créé par les organisateurs.'}
+          </p>
           <div class="erreur-formulaire" role="alert"></div>
           <div class="champ">
             <label for="sup-mdp">Confirme avec ton mot de passe</label>

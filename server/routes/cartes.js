@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { FILIERES, LIMITE_CARTES, MOTIFS_SIGNALEMENT, validerCarte } from '../../shared/regles.js';
-import { exigerCertificat } from '../auth.js';
+import { exigerCertificat, exigerLecture } from '../auth.js';
 import { statutCampagne } from '../config.js';
 import { transaction } from '../db.js';
 import { ErreurClient, idParam } from '../erreurs.js';
 
 export const COLONNES = `c.id, c.auteur_id, c.nom, c.sous_titre, c.filiere, c.pv, c.description, c.attaques,
-  c.image IS NOT NULL AS a_image, c.image_x, c.image_y, c.image_zoom, c.statut, c.cree_le, c.modifie_le,
+  c.image IS NOT NULL AS a_image, c.image_x, c.image_y, c.image_zoom, c.statut, c.masquee_par, c.cree_le, c.modifie_le,
   u.identifiant AS auteur`;
 
 export function formaterCarte(l, viewerId, extra = {}) {
@@ -25,6 +25,7 @@ export function formaterCarte(l, viewerId, extra = {}) {
     auteur: l.auteur,
     estAMoi: l.auteur_id === viewerId,
     statut: l.statut,
+    masqueePar: l.statut === 'masquee' ? (l.masquee_par ?? 'auto') : null,
     creeLe: l.cree_le,
     modifieLe: l.modifie_le,
     ...extra,
@@ -52,7 +53,7 @@ export function lireImage(valeur) {
 
 export function routesCartes({ db, config, maintenant }) {
   const r = Router();
-  r.use(['/cartes', '/stats'], exigerCertificat);
+  // Lecture : participants ayant signé le certificat, et organisateurs. Écriture : participants seulement.
 
   const lireCarte = db.prepare(`SELECT ${COLONNES} FROM cartes c JOIN utilisateurs u ON u.id = c.auteur_id WHERE c.id = ?`);
   const compterCartes = db.prepare('SELECT COUNT(*) AS n FROM cartes WHERE auteur_id = ?');
@@ -97,7 +98,7 @@ export function routesCartes({ db, config, maintenant }) {
   }
 
   // Galerie : toutes les cartes visibles, plus les miennes (même masquées).
-  r.get('/cartes', (req, res) => {
+  r.get('/cartes', exigerLecture, (req, res) => {
     const lignes = db
       .prepare(
         `SELECT ${COLONNES}, EXISTS (SELECT 1 FROM signalements s WHERE s.carte_id = c.id AND s.auteur_id = ?) AS signalee
@@ -109,7 +110,7 @@ export function routesCartes({ db, config, maintenant }) {
     res.json(lignes.map((l) => formaterCarte(l, req.utilisateur.id, { signaleeParMoi: Boolean(l.signalee) })));
   });
 
-  r.get('/cartes/miennes', (req, res) => {
+  r.get('/cartes/miennes', exigerCertificat, (req, res) => {
     const lignes = db
       .prepare(`SELECT ${COLONNES} FROM cartes c JOIN utilisateurs u ON u.id = c.auteur_id WHERE c.auteur_id = ? ORDER BY c.id`)
       .all(req.utilisateur.id);
@@ -119,14 +120,14 @@ export function routesCartes({ db, config, maintenant }) {
     });
   });
 
-  r.get('/cartes/:id', (req, res) => {
+  r.get('/cartes/:id', exigerLecture, (req, res) => {
     const l = carteAccessible(req);
     const extra = { signaleeParMoi: Boolean(dejaSignalee.get(l.id, req.utilisateur.id)) };
     if (l.auteur_id === req.utilisateur.id) extra.signalements = resumeSignalements(l.id);
     res.json(formaterCarte(l, req.utilisateur.id, extra));
   });
 
-  r.get('/cartes/:id/image', (req, res) => {
+  r.get('/cartes/:id/image', exigerLecture, (req, res) => {
     const l = carteAccessible(req);
     const img = db.prepare('SELECT image, image_type FROM cartes WHERE id = ?').get(l.id);
     if (!img?.image) throw new ErreurClient('Pas d’image.', 404);
@@ -135,7 +136,7 @@ export function routesCartes({ db, config, maintenant }) {
     res.send(Buffer.from(img.image));
   });
 
-  r.post('/cartes', (req, res) => {
+  r.post('/cartes', exigerCertificat, (req, res) => {
     exigerCampagneOuverte();
     const { carte, image } = preparer(req.body ?? {});
     const date = maintenant().toISOString();
@@ -169,11 +170,11 @@ export function routesCartes({ db, config, maintenant }) {
     res.status(201).json(formaterCarte(lireCarte.get(Number(id)), req.utilisateur.id));
   });
 
-  r.put('/cartes/:id', (req, res) => {
+  r.put('/cartes/:id', exigerCertificat, (req, res) => {
     exigerCampagneOuverte();
     const actuelle = cartePerso(req);
     if (actuelle.statut === 'masquee') {
-      throw new ErreurClient('Cette carte a été masquée après des signalements : tu peux seulement la supprimer.', 409);
+      throw new ErreurClient('Cette carte a été masquée : tu peux seulement la supprimer.', 409);
     }
     const { carte, image } = preparer(req.body ?? {});
     // Horodatage strictement croissant : il sert aussi de version pour le cache de l'image.
@@ -199,13 +200,13 @@ export function routesCartes({ db, config, maintenant }) {
   });
 
   // Supprimer reste possible après la campagne : c'est le droit de retrait de l'auteur.
-  r.delete('/cartes/:id', (req, res) => {
+  r.delete('/cartes/:id', exigerCertificat, (req, res) => {
     const carte = cartePerso(req);
     db.prepare('DELETE FROM cartes WHERE id = ?').run(carte.id);
     res.json({ ok: true });
   });
 
-  r.post('/cartes/:id/signalements', (req, res) => {
+  r.post('/cartes/:id/signalements', exigerCertificat, (req, res) => {
     const carte = carteAccessible(req);
     if (carte.auteur_id === req.utilisateur.id) throw new ErreurClient('Tu ne peux pas signaler ta propre carte.');
     if (carte.statut !== 'visible') throw new ErreurClient('Cette carte est déjà masquée.', 409);
@@ -223,7 +224,7 @@ export function routesCartes({ db, config, maintenant }) {
         maintenant().toISOString(),
       );
       if (resumeSignalements(carte.id).total >= config.seuilSignalements) {
-        db.prepare(`UPDATE cartes SET statut = 'masquee' WHERE id = ?`).run(carte.id);
+        db.prepare(`UPDATE cartes SET statut = 'masquee', masquee_par = 'auto' WHERE id = ?`).run(carte.id);
         return true;
       }
       return false;
@@ -231,7 +232,7 @@ export function routesCartes({ db, config, maintenant }) {
     res.status(201).json({ ok: true, masquee });
   });
 
-  r.get('/stats', (_req, res) => {
+  r.get('/stats', exigerLecture, (_req, res) => {
     const parFiliere = Object.fromEntries(FILIERES.map((f) => [f.id, 0]));
     for (const l of db.prepare(`SELECT filiere, COUNT(*) AS n FROM cartes WHERE statut = 'visible' GROUP BY filiere`).all()) {
       parFiliere[l.filiere] = l.n;

@@ -19,8 +19,13 @@ function emplacement(carte, ouverte) {
     ${masquee
       ? html`<div class="alveole__alerte">
           <strong>Carte masquée</strong>
-          <p>Elle a reçu ${s.total} signalement${s.total > 1 ? 's' : ''}. Personne d’autre ne la voit. Tu peux la supprimer pour libérer la place.</p>
-          <ul>${Object.entries(s.motifs).map(([m, n]) => html`<li>${nomMotif(m)} · ${n}</li>`)}</ul>
+          <p>
+            ${carte.masqueePar === 'organisation'
+              ? 'Les organisateurs l’ont masquée suite aux signalements.'
+              : `Elle a reçu ${s.total} signalement${s.total > 1 ? 's' : ''}.`}
+            Personne d’autre ne la voit. Tu peux la supprimer pour libérer la place.
+          </p>
+          ${s.total > 0 && html`<ul>${Object.entries(s.motifs).map(([m, n]) => html`<li>${nomMotif(m)} · ${n}</li>`)}</ul>`}
         </div>`
       : s.total > 0 &&
         html`<p class="alveole__info">${icone('drapeau')} ${s.total} signalement${s.total > 1 ? 's' : ''} (masquage à ${etat.serveur.seuilSignalements})</p>`}
@@ -68,7 +73,7 @@ function panneauCampagne(stats) {
       <ul class="barres">
         ${FILIERES.map(
           (f) => html`<li style="--c:${f.couleur}">
-            <span class="barres__nom"><span class="pastille-filiere"></span>${f.nom}</span>
+            <span class="barres__nom"><span class="pastille-filiere"></span>${f.nom} <span class="discret">· ${f.domaine}</span></span>
             <span class="barres__piste"><span class="barres__valeur" style="width:${(stats.parFiliere[f.id] / max) * 100}%"></span></span>
             <span class="barres__n mono">${stats.parFiliere[f.id]}</span>
           </li>`,

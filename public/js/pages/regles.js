@@ -58,7 +58,7 @@ export function afficher(racine) {
             <div class="regles__budget">
               <div>
                 <p>Comme dans un devis de masse avant le décollage, tout se paie. Une carte ne peut pas dépasser ${BUDGET} points.</p>
-                <table class="tableau">
+                <div class="table-defilante"><table class="tableau">
                   <thead><tr><th scope="col">Élément</th><th scope="col">Règle</th><th scope="col">Coût</th></tr></thead>
                   <tbody>
                     <tr><th scope="row">Points de vie</th><td>${PV.min} à ${PV.max}, par paliers de ${PV.pas}</td><td class="mono">PV ÷ 2</td></tr>
@@ -67,7 +67,7 @@ export function afficher(racine) {
                     <tr><th scope="row">Énergie</th><td>${ATTAQUE.energieMin} à ${ATTAQUE.energieMax} jetons</td><td class="mono">−5 par jeton après le 1er</td></tr>
                     <tr><th scope="row">Effet</th><td>un par attaque</td><td class="mono">selon l’effet</td></tr>
                   </tbody>
-                </table>
+                </table></div>
                 <p class="discret petit">Une attaque coûte toujours au moins ${ATTAQUE.coutMin} points. Exemple : 60 dégâts pour 2 énergies = 30 − 5 = 25 points.</p>
               </div>
               <figure class="regles__exemple">
@@ -85,35 +85,38 @@ export function afficher(racine) {
 
           <section class="panneau" id="filieres">
             <h2>Filières</h2>
-            <p>Elles jouent le rôle des types : chaque carte appartient à une filière, qui donne sa couleur et son emblème.
+            <p>Elles jouent le rôle des types : chaque carte appartient à l’une des trois filières, qui lui donne sa couleur et son emblème.
               Les forces et faiblesses entre filières seront dévoilées avec la phase 2.</p>
             <ul class="liste-filieres">
-              ${FILIERES.map((f) => html`<li style="--c:${f.couleur}"><span class="choix-filiere__icone">${icone(f.icone)}</span>${f.nom}</li>`)}
+              ${FILIERES.map(
+                (f) => html`<li style="--c:${f.couleur}"><span class="choix-filiere__icone">${icone(f.icone)}</span>
+                  <span class="choix-filiere__nom">${f.nom}<small>${f.domaine}</small></span></li>`,
+              )}
             </ul>
           </section>
 
           <section class="panneau" id="effets">
             <h2>Effets d’attaque</h2>
             <p>Les effets sont choisis dans cette liste pour pouvoir être appliqués automatiquement pendant le jeu. Le texte libre de l’attaque, lui, sert à faire rire.</p>
-            <table class="tableau">
+            <div class="table-defilante"><table class="tableau">
               <thead><tr><th scope="col">Effet</th><th scope="col">Ce qu’il fait</th><th scope="col">Coût</th></tr></thead>
               <tbody>
                 ${EFFETS.map(
                   (e) => html`<tr><th scope="row">${e.nom}</th><td>${e.texte || '—'}</td><td class="mono ${e.cout < 0 ? 'texte-succes' : ''}">${signe(e.cout)}</td></tr>`,
                 )}
               </tbody>
-            </table>
+            </table></div>
             <p class="discret petit">Un coût négatif est un handicap : il rend des points à dépenser ailleurs.</p>
           </section>
 
           <section class="panneau" id="moderation">
             <h2>Signalements</h2>
             <ul class="liste-puces">
-              <li>Personne ne trie les cartes à la main : le certificat de consentement est la protection de base.</li>
+              <li>Seules les personnes choisies par les organisateurs ont un compte. Le certificat de consentement est la protection de base.</li>
               <li>Chaque carte a un bouton <strong>Signaler</strong>. Un signalement par personne et par carte, anonyme pour l’auteur.</li>
               <li>Au bout de <strong>${seuil} signalements</strong>, la carte est masquée automatiquement pour tout le monde sauf son auteur.</li>
-              <li>L’auteur voit les motifs et peut supprimer sa carte pour en concevoir une autre. Une carte masquée ne peut plus être modifiée.</li>
-              <li>Les organisateurs n’interviennent qu’en cas d’abus (signalements en série, contenu illégal).</li>
+              <li>Les organisateurs examinent chaque signalement : ils peuvent masquer une carte, la réafficher en classant les signalements, ou la supprimer.</li>
+              <li>L’auteur d’une carte masquée voit les motifs et peut la supprimer pour en concevoir une autre. Une carte masquée ne peut plus être modifiée.</li>
             </ul>
           </section>
         </div>

@@ -32,7 +32,7 @@ export const CLAUSES = [
     id: 'signalement',
     titre: 'Signalements',
     texte:
-      'Je comprends qu’une carte signalée par plusieurs participants est masquée automatiquement, et que son auteur peut alors la supprimer pour en créer une autre. Je n’utilise pas le signalement pour régler des comptes.',
+      'Je comprends qu’une carte signalée par plusieurs participants est masquée automatiquement, et que les organisateurs examinent les signalements : ils peuvent masquer, réafficher ou supprimer une carte. Je n’utilise pas le signalement pour régler des comptes.',
   },
   {
     id: 'discretion',

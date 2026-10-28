@@ -187,7 +187,7 @@ function formulaire(b, libelleBouton) {
             (f) => html`<label class="choix-filiere" style="--c:${f.couleur}">
               <input type="radio" name="filiere" value="${f.id}" ${b.filiere === f.id ? html`checked` : ''} />
               <span class="choix-filiere__icone">${icone(f.icone)}</span>
-              <span class="choix-filiere__nom">${f.nom}</span>
+              <span class="choix-filiere__nom">${f.nom}<small>${f.domaine}</small></span>
             </label>`,
           )}
         </div>

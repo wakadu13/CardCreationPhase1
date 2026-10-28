@@ -716,7 +716,7 @@ fieldset.panneau {
 
 .choix-filieres {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 0.5rem;
 }
 
@@ -758,6 +758,22 @@ fieldset.panneau {
 .choix-filiere__icone svg {
   width: 20px;
   height: 20px;
+}
+
+.choix-filiere__nom {
+  display: grid;
+  line-height: 1.15;
+}
+
+.choix-filiere__nom small {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--texte-2);
+}
+
+.filtre__domaine {
+  font-weight: 400;
+  opacity: 0.75;
 }
 
 .choix-filiere:has(input:checked) {
@@ -1566,8 +1582,11 @@ output {
   }
 
   .regles__budget {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .regles__exemple {
+    justify-self: center;
   }
 
   .admin-carte {
@@ -1583,5 +1602,324 @@ output {
 @media (max-width: 360px) {
   .grille-cartes .carte {
     --w: 140px !important;
+  }
+}
+
+/* ==========================================================================
+   Connexion, premier vol et espace organisateurs
+   ========================================================================== */
+
+.auth__titre {
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+}
+
+.auth__note {
+  margin: 1rem 0 0;
+  font-size: 0.88rem;
+  color: var(--texte-2);
+}
+
+.premier-vol {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.puce--succes {
+  color: #bdf0d6;
+  border-color: rgba(70, 184, 132, 0.45);
+  background: rgba(70, 184, 132, 0.12);
+}
+
+.puce--succes svg {
+  width: 13px;
+  height: 13px;
+}
+
+.puce--alerte {
+  color: #ffe2ad;
+  border-color: rgba(229, 168, 61, 0.45);
+  background: rgba(229, 168, 61, 0.12);
+}
+
+.puce--alerte svg {
+  width: 13px;
+  height: 13px;
+}
+
+.texte-danger {
+  color: #ff9ea4;
+}
+
+.nav__badge--alerte {
+  background: var(--danger);
+  color: #fff;
+}
+
+.onglets--admin {
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.onglets--admin a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.7rem 1rem;
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--texte-3);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.onglets--admin a:hover {
+  color: var(--texte);
+}
+
+.onglets--admin a[aria-current='page'] {
+  color: var(--or-clair);
+  border-bottom-color: var(--or);
+}
+
+.creation-comptes textarea {
+  font-family: var(--police-mono);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.creation-comptes__pied {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.creation-comptes__pied fieldset {
+  margin: 0;
+}
+
+.resultat-creation {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ligne);
+}
+
+dialog .resultat-creation {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.alerte-or {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid rgba(211, 171, 79, 0.45);
+  background: rgba(211, 171, 79, 0.1);
+  color: var(--or-clair);
+}
+
+.alerte-or svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.mdp {
+  font-size: 1.05rem;
+  color: var(--or-clair) !important;
+  letter-spacing: 0.08em;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.table-defilante {
+  /* position: relative pour que les éléments masqués (sr-only) du tableau restent dans la zone défilante */
+  position: relative;
+  overflow-x: auto;
+  margin: 0 -0.25rem;
+  padding: 0 0.25rem;
+}
+
+.tableau--comptes {
+  min-width: 820px;
+}
+
+.tableau--comptes td,
+.tableau--comptes th {
+  vertical-align: middle;
+}
+
+.tableau--comptes tbody th {
+  white-space: normal;
+}
+
+.actions-ligne {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+
+.btn-icone {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ligne-forte);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--texte-2);
+  cursor: pointer;
+}
+
+.btn-icone svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-icone:hover {
+  color: var(--or-clair);
+  border-color: var(--or);
+}
+
+.btn-icone--danger:hover {
+  color: #ff9ea4;
+  border-color: var(--danger);
+}
+
+.icone-texte {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+}
+
+.grille-admin {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1.5rem 1rem;
+}
+
+.carte-admin {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 0.6rem;
+}
+
+.carte-admin .groupe-boutons {
+  justify-content: center;
+}
+
+.separateur {
+  border: 0;
+  border-top: 1px solid var(--ligne);
+  margin: 1.25rem 0;
+}
+
+/* Fiches d'accès à imprimer, découper et distribuer */
+.fiches-impression {
+  display: none;
+}
+
+.fiche-acces {
+  break-inside: avoid;
+  padding: 14px 16px;
+  border: 1.5px dashed #6b7280;
+  border-radius: 6px;
+  color: #111827;
+  font-family: var(--police-texte);
+}
+
+.fiche-acces__titre {
+  margin: 0;
+  font-family: var(--police-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6b5219;
+}
+
+.fiche-acces__nom {
+  margin: 2px 0 8px;
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.fiche-acces dl {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.fiche-acces dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fiche-acces dt {
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.fiche-acces dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  word-break: break-all;
+  text-align: right;
+}
+
+.fiche-acces dd.mono {
+  font-size: 15px;
+}
+
+.fiche-acces__note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #4b5563;
+}
+
+@media print {
+  body.impression-fiches main .page > :not(.fiches-impression),
+  body.impression-fiches dialog,
+  body.impression-fiches .toasts {
+    display: none !important;
+  }
+
+  body.impression-fiches .fiches-impression {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .creation-comptes__pied {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .grille-admin {
+    grid-template-columns: 1fr;
+    justify-items: center;
   }
 }

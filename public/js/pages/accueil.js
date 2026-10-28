@@ -20,30 +20,9 @@ function formulaireConnexion() {
       <input id="cx-mdp" name="motDePasse" type="password" autocomplete="current-password" required />
     </div>
     <button class="btn btn--bloc" type="submit">Se connecter</button>
-  </form>`;
-}
-
-function formulaireInscription() {
-  return html`<form class="auth__form" data-form="inscription" novalidate>
-    <div class="erreur-formulaire" role="alert"></div>
-    <div class="champ">
-      <label for="in-id">Identifiant</label>
-      <input id="in-id" name="identifiant" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"
-        minlength="3" maxlength="24" required />
-      <span class="champ__aide">Visible par tous sur tes cartes. 3 à 24 caractères : lettres, chiffres, point, tirets.</span>
-    </div>
-    <div class="champ">
-      <label for="in-mdp">Mot de passe</label>
-      <input id="in-mdp" name="motDePasse" type="password" autocomplete="new-password" minlength="8" required />
-      <span class="champ__aide">8 caractères minimum.</span>
-    </div>
-    ${etat.serveur.inscriptionAvecCode &&
-    html`<div class="champ">
-      <label for="in-code">Code d’accès de la promo</label>
-      <input id="in-code" name="codeAcces" type="text" autocomplete="off" required />
-      <span class="champ__aide">Communiqué par les organisateurs.</span>
-    </div>`}
-    <button class="btn btn--bloc" type="submit">Créer mon compte</button>
+    <p class="auth__note">
+      Pas encore de compte ? Ils sont créés par les organisateurs pour les participants choisis : demande-leur tes identifiants.
+    </p>
   </form>`;
 }
 
@@ -73,8 +52,6 @@ function phases() {
 }
 
 export function afficher(main) {
-  let onglet = 'connexion';
-
   monter(
     main,
     html`<section class="accueil">
@@ -86,16 +63,13 @@ export function afficher(main) {
             un nom, une filière, des points de vie, des attaques… et beaucoup d’autodérision.
           </p>
           <ol class="etapes">
-            <li><span class="etapes__num">1</span><span><strong>Signe le certificat</strong> de consentement</span></li>
-            <li><span class="etapes__num">2</span><span><strong>Conçois jusqu’à ${etat.serveur.limiteCartes} cartes</strong> dans l’atelier</span></li>
-            <li><span class="etapes__num">3</span><span><strong>Prépare-toi</strong> pour la phase de jeu</span></li>
+            <li><span class="etapes__num">1</span><span><strong>Connecte-toi</strong> avec les identifiants reçus des organisateurs</span></li>
+            <li><span class="etapes__num">2</span><span><strong>Signe le certificat</strong> de consentement</span></li>
+            <li><span class="etapes__num">3</span><span><strong>Conçois jusqu’à ${etat.serveur.limiteCartes} cartes</strong> dans l’atelier</span></li>
           </ol>
           <div class="panneau panneau--hud auth">
-            <div class="onglets" role="tablist">
-              <button type="button" role="tab" id="tab-connexion" aria-selected="true" aria-controls="auth-corps" data-onglet="connexion">Connexion</button>
-              <button type="button" role="tab" id="tab-inscription" aria-selected="false" aria-controls="auth-corps" data-onglet="inscription">Inscription</button>
-            </div>
-            <div id="auth-corps" role="tabpanel">${formulaireConnexion()}</div>
+            <h2 class="auth__titre">Connexion</h2>
+            <div id="auth-corps">${formulaireConnexion()}</div>
           </div>
         </div>
         <div class="accueil__vitrine" aria-label="Exemples de cartes">
@@ -118,16 +92,6 @@ export function afficher(main) {
   main.querySelectorAll('.eventail__carte').forEach((el) => rendreInclinable(el, 12));
 
   const corps = main.querySelector('#auth-corps');
-  main.querySelector('.onglets').addEventListener('click', (ev) => {
-    const bouton = ev.target.closest('[data-onglet]');
-    if (!bouton || bouton.dataset.onglet === onglet) return;
-    onglet = bouton.dataset.onglet;
-    main.querySelectorAll('[data-onglet]').forEach((b) => b.setAttribute('aria-selected', String(b === bouton)));
-    corps.setAttribute('aria-labelledby', bouton.id);
-    monter(corps, onglet === 'connexion' ? formulaireConnexion() : formulaireInscription());
-    corps.querySelector('input')?.focus();
-  });
-
   corps.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const form = ev.target;
@@ -136,9 +100,9 @@ export function afficher(main) {
     erreur.textContent = '';
     await pendant(form.querySelector('[type=submit]'), async () => {
       try {
-        await api(form.dataset.form === 'connexion' ? '/connexion' : '/inscription', { methode: 'POST', corps: donnees });
+        await api('/connexion', { methode: 'POST', corps: donnees });
         await actualiser();
-        toast(form.dataset.form === 'connexion' ? 'Connexion réussie. Bon vol !' : 'Compte créé. Dernière étape : le certificat.');
+        toast('Connexion réussie. Bon vol !');
         naviguer('/');
       } catch (err) {
         erreur.textContent = err.message;

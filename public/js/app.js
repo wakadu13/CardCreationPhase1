@@ -4,17 +4,27 @@ import { html, monter } from './html.js';
 import { icone, logo } from './icones.js';
 import { chargement, toast } from './ui.js';
 
+// acces : public · premier-vol (mot de passe provisoire) · connexion · certificat (participant) · admin
 const ROUTES = [
   { motif: /^\/$/, page: 'accueil', acces: 'public' },
   { motif: /^\/regles$/, page: 'regles', acces: 'public' },
+  { motif: /^\/premier-vol$/, page: 'premier-vol', acces: 'premier-vol' },
   { motif: /^\/certificat$/, page: 'certificat', acces: 'connexion' },
   { motif: /^\/compte$/, page: 'compte', acces: 'connexion' },
   { motif: /^\/hangar$/, page: 'hangar', acces: 'certificat' },
   { motif: /^\/atelier(?:\/(\d+))?$/, page: 'atelier', acces: 'certificat' },
   { motif: /^\/galerie$/, page: 'galerie', acces: 'certificat' },
   { motif: /^\/registre$/, page: 'registre', acces: 'certificat' },
-  { motif: /^\/admin$/, page: 'admin', acces: 'admin' },
+  { motif: /^\/admin(?:\/(comptes|signalements|cartes|parametres))?$/, page: 'admin', acces: 'admin' },
 ];
+
+// Page d'arrivée selon le profil.
+function accueilDe(u) {
+  if (!u) return '/';
+  if (u.doitChangerMdp) return '/premier-vol';
+  if (u.estAdmin) return '/admin';
+  return u.certificatValide ? '/hangar' : '/certificat';
+}
 
 let nettoyage = null;
 let numeroRoute = 0;
@@ -43,8 +53,18 @@ function rendreBarre(pageActive = ROUTES.find((r) => r.motif.test(cheminCourant(
   const u = utilisateur();
   const s = etat.serveur;
   let liens;
+  const deconnexion = html`<button type="button" class="nav__lien" data-deconnexion>Déconnexion</button>`;
   if (!u) {
     liens = [lienNav('/regles', 'Règles', pageActive), lienNav('/', 'Connexion', pageActive)];
+  } else if (u.doitChangerMdp) {
+    liens = [lienNav('/premier-vol', 'Premier vol', pageActive), lienNav('/regles', 'Règles', pageActive), deconnexion];
+  } else if (u.estAdmin) {
+    liens = [
+      lienNav('/admin', 'Organisation', pageActive),
+      lienNav('/regles', 'Règles', pageActive),
+      lienNav('/compte', 'Compte', pageActive),
+      deconnexion,
+    ];
   } else if (!u.certificatValide) {
     liens = [
       lienNav('/certificat', 'Certificat', pageActive),
@@ -58,7 +78,6 @@ function rendreBarre(pageActive = ROUTES.find((r) => r.motif.test(cheminCourant(
       lienNav('/galerie', 'Galerie', pageActive),
       lienNav('/registre', 'Registre', pageActive),
       lienNav('/regles', 'Règles', pageActive),
-      u.estAdmin && lienNav('/admin', 'Organisation', pageActive),
       lienNav('/compte', 'Compte', pageActive),
       html`<button type="button" class="nav__lien" data-deconnexion>Déconnexion</button>`,
     ];
@@ -116,9 +135,18 @@ async function afficherRoute() {
   if (!route) return naviguer('/');
   const u = utilisateur();
   if (route.acces !== 'public' && !u) return naviguer('/');
-  if ((route.acces === 'certificat' || route.acces === 'admin') && !u.certificatValide) return naviguer('/certificat');
-  if (route.acces === 'admin' && !u.estAdmin) return naviguer('/hangar');
-  if (route.page === 'accueil' && u) return naviguer(u.certificatValide ? '/hangar' : '/certificat');
+  if (u) {
+    const arrivee = accueilDe(u);
+    const autorise =
+      route.acces === 'public'
+        ? route.page !== 'accueil'
+        : u.doitChangerMdp
+          ? route.acces === 'premier-vol'
+          : route.acces === 'connexion' ||
+            (route.acces === 'admin' && u.estAdmin) ||
+            (route.acces === 'certificat' && !u.estAdmin && u.certificatValide);
+    if (!autorise && chemin !== arrivee) return naviguer(arrivee);
+  }
 
   nettoyage?.();
   nettoyage = null;
@@ -142,9 +170,9 @@ async function afficherRoute() {
     nettoyage = typeof resultat === 'function' ? resultat : null;
   } catch (err) {
     if (numero !== numeroRoute) return;
-    if (err?.status === 401 || err?.donnees?.code === 'certificat') {
+    if (err?.status === 401 || ['certificat', 'mot-de-passe'].includes(err?.donnees?.code)) {
       await actualiser();
-      return naviguer(err.status === 401 ? '/' : '/certificat');
+      return naviguer(accueilDe(utilisateur()));
     }
     console.error(err);
     monter(main, html`<div class="vide"><h2>Turbulences</h2><p>${err?.message ?? 'Erreur inattendue.'}</p>

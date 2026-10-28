@@ -3,7 +3,7 @@ export const EXEMPLES = [
   {
     nom: 'Caporal Café',
     sousTitre: 'Carburant officiel de la promo',
-    filiere: 'soutien',
+    filiere: 'egid',
     pv: 70,
     attaques: [
       { nom: 'Double expresso', energie: 1, degats: 20, effet: 'ravitaillement', texte: '' },
@@ -18,7 +18,7 @@ export const EXEMPLES = [
   {
     nom: 'Pilote du dimanche',
     sousTitre: 'Brevet obtenu au simulateur',
-    filiere: 'navigants',
+    filiere: 'ned',
     pv: 80,
     attaques: [
       { nom: 'Passage bas', energie: 2, degats: 50, effet: 'aucun', texte: 'Les vaches s’en souviennent encore.' },
@@ -33,7 +33,7 @@ export const EXEMPLES = [
   {
     nom: 'Sergent Clé de 12',
     sousTitre: 'Répare tout sauf son réveil',
-    filiere: 'mecaniciens',
+    filiere: 'tesa',
     pv: 100,
     attaques: [
       { nom: 'Coup de clé', energie: 1, degats: 20, effet: 'aucun', texte: '' },

@@ -30,13 +30,13 @@ export function rendreCarte(c, { largeur = 300, numero = c.id, classe = '', voil
         <span class="carte__sous-titre">${c.sousTitre}</span>
         <h3 class="carte__nom ${[...nom].length > 17 ? 'carte__nom--long' : ''}">${nom}</h3>
         <span class="carte__pv"><small>PV</small>${c.pv}</span>
-        <span class="carte__embleme" title="${f.nom}">${icone(f.icone)}</span>
+        <span class="carte__embleme" title="${f.nom} · ${f.domaine ?? ''}">${icone(f.icone)}</span>
       </header>
       <div class="carte__visuel">
         <span class="carte__numero">${numero ? `N° ${String(numero).padStart(3, '0')}` : 'Prototype'}</span>
         ${c.image ? html`<img src="${c.image}" alt="" loading="lazy" decoding="async" style="${cadrage}">` : cielParDefaut()}
       </div>
-      <div class="carte__galon">${f.nom}</div>
+      <div class="carte__galon"><span>${f.nom}${f.domaine && html`<span class="carte__domaine"> · ${f.domaine}</span>`}</span></div>
       <div class="carte__carnet">
         ${(c.attaques ?? []).map(rendreAttaque)}
         ${c.description && html`<p class="carte__description">${c.description}</p>`}

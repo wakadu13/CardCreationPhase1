@@ -3,6 +3,7 @@ import { after, before, test } from 'node:test';
 import { CLAUSES } from '../shared/certificat.js';
 import { LIMITE_CARTES } from '../shared/regles.js';
 import { creerApp } from '../server/app.js';
+import { assurerAdmin, identifiantDepuisNom } from '../server/comptes.js';
 import { lireConfig } from '../server/config.js';
 import { ouvrirBase } from '../server/db.js';
 
@@ -12,19 +13,23 @@ let horloge = new Date('2026-11-04T12:00:00+01:00');
 
 let serveur;
 let base;
+let db;
+let admin;
+
+const ENV = { CAMPAGNE_DEBUT: DEBUT.toISOString(), CAMPAGNE_FIN: FIN.toISOString(), SEUIL_SIGNALEMENTS: '3' };
 
 before(async () => {
-  const config = lireConfig({
-    CAMPAGNE_DEBUT: DEBUT.toISOString(),
-    CAMPAGNE_FIN: FIN.toISOString(),
-    ADMINS: 'orga',
-    SEUIL_SIGNALEMENTS: '3',
-  });
-  const app = creerApp({ db: ouvrirBase(':memory:'), config, maintenant: () => horloge });
+  db = ouvrirBase(':memory:');
+  const app = creerApp({ db, config: lireConfig(ENV), maintenant: () => horloge });
+  await assurerAdmin(db, { identifiant: 'admin', motDePasse: 'provisoire-admin' });
   await new Promise((ok) => {
     serveur = app.listen(0, '127.0.0.1', ok);
   });
   base = `http://127.0.0.1:${serveur.address().port}`;
+
+  admin = client();
+  assert.equal((await admin.post('/api/connexion', { identifiant: 'admin', motDePasse: 'provisoire-admin' })).status, 200);
+  assert.equal((await admin.post('/api/moi/mot-de-passe', { nouveau: 'admin-definitif' })).status, 200);
 });
 
 after(() => serveur.close());
@@ -47,21 +52,28 @@ function client() {
     get: (c, e) => appel('GET', c, undefined, e),
     post: (c, b = {}, e) => appel('POST', c, b, e),
     put: (c, b, e) => appel('PUT', c, b, e),
+    patch: (c, b, e) => appel('PATCH', c, b, e),
     del: (c, b, e) => appel('DELETE', c, b, e),
   };
 }
 
-async function participant(identifiant) {
+// Parcours complet d'un participant : compte créé par l'organisateur, première connexion, certificat.
+async function participant(identifiant, { signer = true } = {}) {
+  const creation = await admin.post('/api/admin/comptes', { comptes: [{ nomComplet: `Prénom ${identifiant}`, identifiant }] });
+  assert.equal(creation.status, 201, JSON.stringify(creation.corps));
   const c = client();
-  assert.equal((await c.post('/api/inscription', { identifiant, motDePasse: 'motdepasse1' })).status, 201);
-  assert.equal((await c.post('/api/certificat', { nomComplet: `Prénom ${identifiant}`, accords: CLAUSES.map((x) => x.id) })).status, 201);
+  assert.equal((await c.post('/api/connexion', { identifiant, motDePasse: creation.corps.comptes[0].motDePasse })).status, 200);
+  assert.equal((await c.post('/api/moi/mot-de-passe', { nouveau: 'motdepasse1' })).status, 200);
+  if (signer) assert.equal((await c.post('/api/certificat', { accords: CLAUSES.map((x) => x.id) })).status, 201);
   return c;
 }
+
+const idDe = async (identifiant) => (await admin.get('/api/admin/comptes')).corps.find((c) => c.identifiant === identifiant).id;
 
 const carte = (nom = 'Major Test') => ({
   nom,
   sousTitre: 'Sous-titre',
-  filiere: 'mecaniciens',
+  filiere: 'tesa',
   pv: 90,
   description: 'Description.',
   attaques: [{ nom: 'Clé de 12', energie: 2, degats: 50, effet: 'aucun', texte: '' }],
@@ -72,42 +84,91 @@ const carte = (nom = 'Major Test') => ({
 const PNG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
-test('inscription, identifiant unique et connexion', async () => {
-  const a = client();
-  assert.equal((await a.post('/api/inscription', { identifiant: 'x', motDePasse: 'motdepasse1' })).status, 400);
-  assert.equal((await a.post('/api/inscription', { identifiant: 'alice', motDePasse: 'court' })).status, 400);
-  assert.equal((await a.post('/api/inscription', { identifiant: 'alice', motDePasse: 'motdepasse1' })).status, 201);
-  assert.equal((await client().post('/api/inscription', { identifiant: 'ALICE', motDePasse: 'motdepasse1' })).status, 409);
-
-  const b = client();
-  assert.equal((await b.post('/api/connexion', { identifiant: 'alice', motDePasse: 'mauvais-mdp' })).status, 401);
-  assert.equal((await b.post('/api/connexion', { identifiant: 'alice', motDePasse: 'motdepasse1' })).status, 200);
-  const etat = await b.get('/api/etat');
-  assert.equal(etat.corps.utilisateur.identifiant, 'alice');
-  assert.equal(etat.corps.utilisateur.certificatValide, false);
+test('identifiants générés à partir du nom', () => {
+  assert.equal(identifiantDepuisNom('Élodie Le Gall-Durand'), 'elodie.le.gall.durand');
+  assert.equal(identifiantDepuisNom('Jo'), 'jo0');
+  assert.ok(identifiantDepuisNom('Maximilien-Alexandre de la Tour du Pin').length <= 24);
 });
 
-test('le certificat est obligatoire et doit être entièrement coché', async () => {
+test('pas d’inscription libre : seuls les organisateurs créent des comptes', async () => {
+  assert.equal((await client().post('/api/inscription', { identifiant: 'pirate', motDePasse: 'motdepasse1' })).status, 404);
+
+  const curieux = await participant('curieux');
+  assert.equal((await curieux.post('/api/admin/comptes', { comptes: [{ nomComplet: 'Ami Secret' }] })).status, 403);
+  assert.equal((await curieux.get('/api/admin/comptes')).status, 403);
+  assert.equal((await client().get('/api/admin/comptes')).status, 401);
+});
+
+test('création en lot : identifiants automatiques, doublons refusés, tout ou rien', async () => {
+  const lot = await admin.post('/api/admin/comptes', {
+    comptes: [{ nomComplet: 'Alice Dupont' }, { nomComplet: 'Élodie  Lefèvre' }, { nomComplet: 'Alicé Dupont' }],
+  });
+  assert.equal(lot.status, 201);
+  assert.deepEqual(
+    lot.corps.comptes.map((c) => [c.nomComplet, c.identifiant]),
+    [
+      ['Alice Dupont', 'alice.dupont'],
+      ['Élodie Lefèvre', 'elodie.lefevre'],
+      ['Alicé Dupont', 'alice.dupont2'],
+    ],
+  );
+  assert.ok(lot.corps.comptes.every((c) => /^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{2}$/.test(c.motDePasse)));
+
+  // Personne déjà inscrite, ligne en double, ligne invalide : rien n'est créé
+  const avant = (await admin.get('/api/admin/comptes')).corps.length;
+  assert.equal((await admin.post('/api/admin/comptes', { comptes: [{ nomComplet: 'Nouveau Venu' }, { nomComplet: 'alice dupont' }] })).status, 409);
+  assert.equal((await admin.post('/api/admin/comptes', { comptes: [{ nomComplet: 'Paul Roux' }, { nomComplet: 'Paul Roux' }] })).status, 400);
+  assert.equal((await admin.post('/api/admin/comptes', { comptes: [{ nomComplet: 'Zoé Petit' }, { nomComplet: 'X' }] })).status, 400);
+  assert.equal((await admin.post('/api/admin/comptes', { comptes: [{ nomComplet: 'Zoé Petit', identifiant: 'alice.dupont' }] })).status, 409);
+  assert.equal((await admin.get('/api/admin/comptes')).corps.length, avant);
+});
+
+test('première connexion : le mot de passe provisoire doit être remplacé', async () => {
+  const { corps } = await admin.post('/api/admin/comptes', { comptes: [{ nomComplet: 'Bruno Petit' }] });
+  const { identifiant, motDePasse } = corps.comptes[0];
   const c = client();
-  await c.post('/api/inscription', { identifiant: 'bruno', motDePasse: 'motdepasse1' });
+  assert.equal((await c.post('/api/connexion', { identifiant, motDePasse: 'mauvais-mdp' })).status, 401);
+  assert.equal((await c.post('/api/connexion', { identifiant, motDePasse })).status, 200);
+
+  const etat = (await c.get('/api/etat')).corps.utilisateur;
+  assert.equal(etat.doitChangerMdp, true);
+  assert.equal(etat.nomComplet, 'Bruno Petit');
+  for (const chemin of ['/api/cartes', '/api/certificat']) {
+    const refus = await c.get(chemin);
+    assert.equal(refus.status, 403);
+    assert.equal(refus.corps.code, 'mot-de-passe');
+  }
+  assert.equal((await c.post('/api/moi/mot-de-passe', { nouveau: motDePasse })).status, 400);
+  assert.equal((await c.post('/api/moi/mot-de-passe', { nouveau: 'court' })).status, 400);
+  assert.equal((await c.post('/api/moi/mot-de-passe', { nouveau: 'mon-mot-de-passe' })).status, 200);
+  assert.equal((await c.get('/api/etat')).corps.utilisateur.doitChangerMdp, false);
+
+  // Ensuite, l'ancien mot de passe est exigé pour en changer
+  assert.equal((await c.post('/api/moi/mot-de-passe', { nouveau: 'encore-un-autre' })).status, 403);
+  assert.equal((await c.post('/api/moi/mot-de-passe', { actuel: 'mon-mot-de-passe', nouveau: 'encore-un-autre' })).status, 200);
+});
+
+test('le certificat est obligatoire et porte le nom saisi par les organisateurs', async () => {
+  const c = await participant('signataire', { signer: false });
   const refus = await c.get('/api/cartes');
   assert.equal(refus.status, 403);
   assert.equal(refus.corps.code, 'certificat');
   assert.equal((await c.post('/api/cartes', carte())).status, 403);
 
-  const partiel = await c.post('/api/certificat', { nomComplet: 'Bruno Petit', accords: [CLAUSES[0].id] });
-  assert.equal(partiel.status, 400);
-  const ok = await c.post('/api/certificat', { nomComplet: 'Bruno Petit', accords: CLAUSES.map((x) => x.id) });
+  assert.equal((await c.get('/api/certificat')).corps.nomCompte, 'Prénom signataire');
+  assert.equal((await c.post('/api/certificat', { accords: [CLAUSES[0].id] })).status, 400);
+  const ok = await c.post('/api/certificat', { nomComplet: 'Faux Nom', accords: CLAUSES.map((x) => x.id) });
   assert.equal(ok.status, 201);
   assert.match(ok.corps.numero, /^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/);
-  assert.equal((await c.get('/api/cartes')).status, 200);
-  const registre = await c.get('/api/registre');
-  assert.ok(registre.corps.some((s) => s.nomComplet === 'Bruno Petit'));
+  const registre = (await c.get('/api/registre')).corps;
+  assert.ok(registre.some((s) => s.identifiant === 'signataire' && s.nomComplet === 'Prénom signataire'));
+  assert.ok(!registre.some((s) => s.nomComplet === 'Faux Nom'));
 });
 
 test('création de cartes : validation, image et limite de 5', async () => {
   const c = await participant('createur');
   assert.equal((await c.post('/api/cartes', { ...carte(), confirmeSignataires: false })).status, 400);
+  assert.equal((await c.post('/api/cartes', { ...carte(), filiere: 'navigants' })).status, 400);
   const tropForte = await c.post('/api/cartes', { ...carte(), pv: 150, attaques: [{ nom: 'Boum', energie: 3, degats: 120, effet: 'aucun' }] });
   assert.equal(tropForte.status, 400);
   assert.match(tropForte.corps.erreur, /Budget/);
@@ -123,17 +184,14 @@ test('création de cartes : validation, image et limite de 5', async () => {
   assert.equal(Buffer.from(image.corps).subarray(1, 4).toString(), 'PNG');
 
   for (let i = 2; i <= LIMITE_CARTES; i++) assert.equal((await c.post('/api/cartes', carte(`Carte ${i}`))).status, 201);
-  const sixieme = await c.post('/api/cartes', carte('Une de trop'));
-  assert.equal(sixieme.status, 409);
+  assert.equal((await c.post('/api/cartes', carte('Une de trop'))).status, 409);
+  assert.equal((await c.get('/api/cartes/miennes')).corps.cartes.length, LIMITE_CARTES);
 
-  const { corps } = await c.get('/api/cartes/miennes');
-  assert.equal(corps.cartes.length, LIMITE_CARTES);
-
-  // Modifier, puis supprimer pour libérer une place
   const id = premiere.corps.id;
-  const modif = await c.put(`/api/cartes/${id}`, { ...carte('Renommée'), image: null });
+  const modif = await c.put(`/api/cartes/${id}`, { ...carte('Renommée'), filiere: 'egid', image: null });
   assert.equal(modif.status, 200);
   assert.equal(modif.corps.nom, 'Renommée');
+  assert.equal(modif.corps.filiere, 'egid');
   assert.equal(modif.corps.image, null);
   assert.equal((await c.del(`/api/cartes/${id}`)).status, 200);
   assert.equal((await c.post('/api/cartes', carte('Remplaçante'))).status, 201);
@@ -150,7 +208,7 @@ test('on ne modifie ni ne supprime la carte d’un autre', async () => {
 test('signalements : masquage automatique au seuil, l’auteur seul la voit et peut la supprimer', async () => {
   const auteur = await participant('auteur');
   const { corps: c } = await auteur.post('/api/cartes', carte('Trop loin'));
-  const [r1, r2, r3, r4] = await Promise.all(['sig1', 'sig2', 'sig3', 'sig4'].map(participant));
+  const [r1, r2, r3, r4] = await Promise.all(['sig1', 'sig2', 'sig3', 'sig4'].map((n) => participant(n)));
 
   assert.equal((await auteur.post(`/api/cartes/${c.id}/signalements`, { motif: 'autre' })).status, 400);
   assert.equal((await r1.post(`/api/cartes/${c.id}/signalements`, { motif: 'inconnu' })).status, 400);
@@ -161,44 +219,123 @@ test('signalements : masquage automatique au seuil, l’auteur seul la voit et p
   const troisieme = await r3.post(`/api/cartes/${c.id}/signalements`, { motif: 'trop-loin', commentaire: 'Non.' });
   assert.equal(troisieme.corps.masquee, true);
 
-  // Les autres ne la voient plus
   assert.equal((await r4.get(`/api/cartes/${c.id}`)).status, 404);
   assert.ok(!(await r4.get('/api/cartes')).corps.some((x) => x.id === c.id));
   assert.equal((await r4.post(`/api/cartes/${c.id}/signalements`, { motif: 'autre' })).status, 404);
 
-  // L'auteur la voit masquée avec le résumé des motifs, ne peut plus la modifier, peut la supprimer
-  const miennes = (await auteur.get('/api/cartes/miennes')).corps.cartes;
-  const masquee = miennes.find((x) => x.id === c.id);
+  const masquee = (await auteur.get('/api/cartes/miennes')).corps.cartes.find((x) => x.id === c.id);
   assert.equal(masquee.statut, 'masquee');
+  assert.equal(masquee.masqueePar, 'auto');
   assert.deepEqual(masquee.signalements, { total: 3, motifs: { 'trop-loin': 2, discrimination: 1 } });
   assert.equal((await auteur.put(`/api/cartes/${c.id}`, carte('Corrigée'))).status, 409);
   assert.equal((await auteur.del(`/api/cartes/${c.id}`)).status, 200);
 });
 
-test('organisateurs : liste des signalements, rétablissement et export', async () => {
-  const orga = await participant('orga');
+test('organisateurs : traiter les signalements (masquer, classer, supprimer) et exporter', async () => {
   const auteur = await participant('auteur2');
   const { corps: c } = await auteur.post('/api/cartes', carte('Victime de spam'));
-  const rapporteurs = await Promise.all(['spam1', 'spam2', 'spam3', 'spam4'].map(participant));
+  const { corps: c2 } = await auteur.post('/api/cartes', carte('Vraiment limite'));
+  const rapporteurs = await Promise.all(['spam1', 'spam2', 'spam3', 'spam4'].map((n) => participant(n)));
   for (const r of rapporteurs.slice(0, 3)) await r.post(`/api/cartes/${c.id}/signalements`, { motif: 'autre' });
+  await rapporteurs[0].post(`/api/cartes/${c2.id}/signalements`, { motif: 'trop-loin', commentaire: 'Blessant.' });
 
-  assert.equal((await auteur.get('/api/admin/signalements')).status, 403);
-  const liste = await orga.get('/api/admin/signalements');
+  const liste = await admin.get('/api/admin/signalements');
   assert.equal(liste.status, 200);
   const entree = liste.corps.cartes.find((x) => x.id === c.id);
   assert.equal(entree.statut, 'masquee');
   assert.equal(entree.signalements.length, 3);
+  assert.equal(entree.signalements[0].nomPar, 'Prénom spam1');
+  assert.ok(liste.corps.cartes.some((x) => x.id === c2.id && x.statut === 'visible'));
+  assert.equal((await admin.get('/api/admin/resume')).corps.aTraiter >= 2, true);
 
-  assert.equal((await orga.post(`/api/admin/cartes/${c.id}/retablir`)).status, 200);
+  // L'organisateur voit les cartes sans avoir signé de certificat, mais n'en crée pas
+  assert.equal((await admin.get(`/api/cartes/${c.id}`)).status, 200);
+  assert.equal((await admin.post('/api/cartes', carte('Carte orga'))).status, 403);
+
+  // Masquage manuel d'une carte sous le seuil
+  assert.equal((await admin.post(`/api/admin/cartes/${c2.id}/masquer`)).status, 200);
+  assert.equal((await rapporteurs[3].get(`/api/cartes/${c2.id}`)).status, 404);
+  const vueAuteur = (await auteur.get('/api/cartes/miennes')).corps.cartes.find((x) => x.id === c2.id);
+  assert.equal(vueAuteur.masqueePar, 'organisation');
+
+  // Classer les signalements d'une carte victime d'abus
+  assert.equal((await admin.post(`/api/admin/cartes/${c.id}/retablir`)).status, 200);
   assert.equal((await rapporteurs[3].get(`/api/cartes/${c.id}`)).status, 200);
-  // Les signalements écartés ne comptent plus, mais leurs auteurs ne peuvent pas recommencer
   assert.equal((await rapporteurs[0].post(`/api/cartes/${c.id}/signalements`, { motif: 'autre' })).status, 409);
   assert.equal((await rapporteurs[3].post(`/api/cartes/${c.id}/signalements`, { motif: 'autre' })).corps.masquee, false);
 
-  const exp = await orga.get('/api/admin/export');
+  const toutes = (await admin.get('/api/admin/cartes')).corps;
+  assert.ok(toutes.some((x) => x.id === c2.id && x.statut === 'masquee'));
+
+  const exp = await admin.get('/api/admin/export');
   assert.equal(exp.status, 200);
   assert.ok(exp.corps.cartes.some((x) => x.id === c.id));
+  assert.ok(!exp.corps.cartes.some((x) => x.id === c2.id));
   assert.ok(exp.corps.cartes.every((x) => !('estAMoi' in x)));
+
+  assert.equal((await admin.del(`/api/admin/cartes/${c2.id}`)).status, 200);
+  assert.equal((await auteur.get('/api/cartes/miennes')).corps.cartes.some((x) => x.id === c2.id), false);
+});
+
+test('organisateurs : mot de passe oublié, correction du nom, suppression de compte', async () => {
+  const oublieux = await participant('oublieux');
+  const { corps: carteOubli } = await oublieux.post('/api/cartes', carte('Carte de l’oublieux'));
+  const id = await idDe('oublieux');
+
+  const reinit = await admin.post(`/api/admin/comptes/${id}/mot-de-passe`);
+  assert.equal(reinit.status, 200);
+  assert.equal((await oublieux.get('/api/cartes')).status, 401); // déconnecté partout
+  const c = client();
+  assert.equal((await c.post('/api/connexion', { identifiant: 'oublieux', motDePasse: 'motdepasse1' })).status, 401);
+  assert.equal((await c.post('/api/connexion', { identifiant: 'oublieux', motDePasse: reinit.corps.motDePasse })).status, 200);
+  assert.equal((await c.get('/api/etat')).corps.utilisateur.doitChangerMdp, true);
+  assert.equal((await admin.post(`/api/admin/comptes/${await idDe('admin')}/mot-de-passe`)).status, 400);
+
+  assert.equal((await admin.patch(`/api/admin/comptes/${id}`, { nomComplet: 'Oscar Oublieux' })).status, 200);
+  const temoin = await participant('temoin');
+  assert.ok((await temoin.get('/api/registre')).corps.some((s) => s.nomComplet === 'Oscar Oublieux'));
+  assert.equal((await admin.patch(`/api/admin/comptes/${id}`, { nomComplet: 'Prénom temoin' })).status, 409);
+
+  assert.equal((await admin.del(`/api/admin/comptes/${id}`)).status, 200);
+  assert.equal((await temoin.get(`/api/cartes/${carteOubli.id}`)).status, 404);
+  assert.equal((await admin.del(`/api/admin/comptes/${await idDe('admin')}`)).status, 400);
+});
+
+test('le dernier organisateur ne peut pas supprimer son compte, et le compte admin n’est créé qu’une fois', async () => {
+  assert.equal((await admin.del('/api/moi', { motDePasse: 'admin-definitif' })).status, 409);
+  const deuxieme = await assurerAdmin(db, { identifiant: 'autre-admin' });
+  assert.equal(deuxieme.cree, false);
+  assert.equal(deuxieme.identifiant, 'admin');
+});
+
+test('paramètres de campagne modifiables par les organisateurs et conservés en base', async () => {
+  assert.equal((await admin.put('/api/admin/parametres', { seuilSignalements: 3, campagneDebut: FIN, campagneFin: DEBUT })).status, 400);
+  assert.equal((await admin.put('/api/admin/parametres', { seuilSignalements: 0 })).status, 400);
+
+  // Abaisser le seuil masque aussitôt les cartes qui l'atteignent
+  const auteur = await participant('auteur3');
+  const { corps: c } = await auteur.post('/api/cartes', carte('Une seule plainte'));
+  await (await participant('plaignant')).post(`/api/cartes/${c.id}/signalements`, { motif: 'autre' });
+  const r = await admin.put('/api/admin/parametres', {
+    promo: 'Promo Test',
+    campagneDebut: DEBUT.toISOString(),
+    campagneFin: FIN.toISOString(),
+    seuilSignalements: 1,
+  });
+  assert.equal(r.status, 200);
+  assert.ok(r.corps.masquees >= 1);
+  assert.equal((await auteur.get('/api/cartes/miennes')).corps.cartes.find((x) => x.id === c.id).statut, 'masquee');
+  const etat = (await auteur.get('/api/etat')).corps;
+  assert.equal(etat.promo, 'Promo Test');
+  assert.equal(etat.seuilSignalements, 1);
+
+  // Un redémarrage (nouvelle app sur la même base) retrouve les réglages
+  const config = lireConfig({ ...ENV, PROMO: 'Valeur du .env' });
+  creerApp({ db, config, maintenant: () => horloge });
+  assert.equal(config.promo, 'Promo Test');
+  assert.equal(config.seuilSignalements, 1);
+
+  assert.equal((await admin.put('/api/admin/parametres', { promo: '', campagneDebut: DEBUT, campagneFin: FIN, seuilSignalements: 3 })).status, 200);
 });
 
 test('dates de campagne : création fermée avant et après, suppression toujours possible', async () => {
@@ -235,7 +372,7 @@ test('protection CSRF : origine étrangère et formulaire non JSON refusés', as
 test('supprimer son compte retire ses cartes et son certificat', async () => {
   const c = await participant('partant');
   const { corps } = await c.post('/api/cartes', carte('Dernière carte'));
-  const temoin = await participant('temoin');
+  const temoin = await participant('temoin2');
   assert.equal((await c.del('/api/moi', { motDePasse: 'mauvais' })).status, 403);
   assert.equal((await c.del('/api/moi', { motDePasse: 'motdepasse1' })).status, 200);
   assert.equal((await temoin.get(`/api/cartes/${corps.id}`)).status, 404);

@@ -4,7 +4,7 @@ import express from 'express';
 import { VERSION_CERTIFICAT } from '../shared/certificat.js';
 import { LIMITE_CARTES } from '../shared/regles.js';
 import { chargerUtilisateur } from './auth.js';
-import { statutCampagne } from './config.js';
+import { chargerParametres, statutCampagne } from './config.js';
 import { gestionnaireErreurs } from './erreurs.js';
 import { routesAdmin } from './routes/admin.js';
 import { routesCartes } from './routes/cartes.js';
@@ -54,6 +54,9 @@ function origineMemeSite(req, res, next) {
 }
 
 export function creerApp({ db, config, maintenant = () => new Date() }) {
+  // Les réglages modifiés depuis l'espace organisateurs priment sur le fichier .env.
+  chargerParametres(db, config);
+
   const app = express();
   app.disable('x-powered-by');
   if (config.trustProxy) app.set('trust proxy', config.trustProxy);
@@ -63,7 +66,7 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
   const api = express.Router();
   api.use(origineMemeSite);
   api.use(express.json({ limit: '3mb' }));
-  api.use(chargerUtilisateur(db, config));
+  api.use(chargerUtilisateur(db));
   api.use((_req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
@@ -85,7 +88,6 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
       limiteCartes: LIMITE_CARTES,
       seuilSignalements: config.seuilSignalements,
       versionCertificat: VERSION_CERTIFICAT,
-      inscriptionAvecCode: Boolean(config.codeAcces),
       utilisateur: compte.profil(req.utilisateur),
     });
   });

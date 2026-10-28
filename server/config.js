@@ -1,4 +1,6 @@
 // Lecture de la configuration depuis les variables d'environnement (voir .env.example).
+// Les réglages de campagne (dates, seuil, promo) peuvent ensuite être modifiés depuis
+// l'espace organisateurs : ils sont alors enregistrés en base et prennent le dessus.
 
 function date(valeur, nom) {
   if (!valeur) return null;
@@ -28,11 +30,8 @@ export function lireConfig(env = process.env) {
     campagneDebut: date(env.CAMPAGNE_DEBUT, 'CAMPAGNE_DEBUT'),
     campagneFin: date(env.CAMPAGNE_FIN, 'CAMPAGNE_FIN'),
     seuilSignalements: entier(env.SEUIL_SIGNALEMENTS, 3),
-    codeAcces: env.CODE_ACCES || '',
-    admins: (env.ADMINS || '')
-      .split(',')
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean),
+    adminIdentifiant: env.ADMIN_IDENTIFIANT || 'admin',
+    adminMotDePasse: env.ADMIN_MOT_DE_PASSE || undefined,
     cookieSecurise: env.COOKIE_SECURE ? env.COOKIE_SECURE === '1' : env.NODE_ENV === 'production',
     trustProxy: proxy(env.TRUST_PROXY),
   };
@@ -47,4 +46,31 @@ export function statutCampagne(config, maintenant = new Date()) {
   if (config.campagneDebut && maintenant < config.campagneDebut) return 'a-venir';
   if (config.campagneFin && maintenant >= config.campagneFin) return 'terminee';
   return 'ouverte';
+}
+
+// --- Réglages enregistrés en base ---------------------------------------------------
+
+const PARAMETRES = {
+  promo: { lire: (v) => v ?? '', ecrire: (v) => v },
+  campagneDebut: { lire: (v) => (v ? new Date(v) : null), ecrire: (v) => v?.toISOString() ?? null },
+  campagneFin: { lire: (v) => (v ? new Date(v) : null), ecrire: (v) => v?.toISOString() ?? null },
+  seuilSignalements: { lire: (v) => Number(v), ecrire: (v) => String(v) },
+};
+
+// Applique à config les réglages déjà enregistrés en base.
+export function chargerParametres(db, config) {
+  for (const { cle, valeur } of db.prepare('SELECT cle, valeur FROM parametres').all()) {
+    if (PARAMETRES[cle]) config[cle] = PARAMETRES[cle].lire(valeur);
+  }
+}
+
+export function enregistrerParametres(db, config, valeurs) {
+  const requete = db.prepare(
+    'INSERT INTO parametres (cle, valeur) VALUES (?, ?) ON CONFLICT (cle) DO UPDATE SET valeur = excluded.valeur',
+  );
+  for (const [cle, valeur] of Object.entries(valeurs)) {
+    if (!PARAMETRES[cle]) continue;
+    requete.run(cle, PARAMETRES[cle].ecrire(valeur));
+    config[cle] = valeur;
+  }
 }

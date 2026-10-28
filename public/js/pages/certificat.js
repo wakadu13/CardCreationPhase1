@@ -96,12 +96,21 @@ function vueFormulaire(data) {
         )}
       </ol>
       <div class="document__pied document__pied--formulaire">
-        <div class="champ signature">
-          <label for="cert-nom">Prénom et nom</label>
-          <input id="cert-nom" name="nomComplet" type="text" autocomplete="name" maxlength="80" required
-            value="${data.signature?.nomComplet ?? ''}" placeholder="Ex. Camille Martin" />
-          <span class="champ__aide">Ton nom apparaîtra dans le registre des signataires, visible par les participants. Fait le ${aujourdhui}.</span>
-        </div>
+        ${data.nomCompte
+          ? html`<div class="signature">
+              <span class="document__libelle">Signataire</span>
+              <span class="document__signature">${data.nomCompte}</span>
+              <span class="champ__aide">
+                Nom enregistré par les organisateurs, visible dans le registre des signataires. Une erreur ? Préviens-les.
+                Fait le ${aujourdhui}.
+              </span>
+            </div>`
+          : html`<div class="champ signature">
+              <label for="cert-nom">Prénom et nom</label>
+              <input id="cert-nom" name="nomComplet" type="text" autocomplete="name" maxlength="80" required
+                value="${data.signature?.nomComplet ?? ''}" placeholder="Ex. Camille Martin" />
+              <span class="champ__aide">Ton nom apparaîtra dans le registre des signataires, visible par les participants. Fait le ${aujourdhui}.</span>
+            </div>`}
         <div>
           <div class="erreur-formulaire" role="alert"></div>
           <button class="btn" type="submit" disabled>Signer le certificat</button>
@@ -125,7 +134,7 @@ export async function afficher(main) {
 
   const majEtat = () => {
     const coches = form.querySelectorAll('input[name=accords]:checked').length;
-    const nomOk = form.nomComplet.value.trim().length >= 3;
+    const nomOk = data.nomCompte ? true : form.nomComplet.value.trim().length >= 3;
     bouton.disabled = coches < data.clauses.length || !nomOk;
     progression.textContent =
       coches < data.clauses.length
@@ -144,7 +153,7 @@ export async function afficher(main) {
     const accords = [...form.querySelectorAll('input[name=accords]:checked')].map((i) => i.value);
     await pendant(bouton, async () => {
       try {
-        await api('/certificat', { methode: 'POST', corps: { nomComplet: form.nomComplet.value, accords } });
+        await api('/certificat', { methode: 'POST', corps: { nomComplet: form.nomComplet?.value ?? data.nomCompte, accords } });
         await actualiser();
         toast('Certificat signé. Bienvenue au hangar !');
         naviguer('/hangar');

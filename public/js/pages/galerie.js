@@ -82,7 +82,7 @@ function dialogueCarte(carte, surChangement) {
       <div class="detail-carte__visuel" data-inclinable>${rendreCarte(carte, { largeur: 340 })}</div>
       <div class="detail-carte__infos">
         <dl class="fiche">
-          <div><dt>Filière</dt><dd><span class="pastille-filiere" style="--c:${f?.couleur}"></span> ${f?.nom}</dd></div>
+          <div><dt>Filière</dt><dd><span class="pastille-filiere" style="--c:${f?.couleur}"></span> ${f?.nom} · ${f?.domaine}</dd></div>
           <div><dt>Conçue par</dt><dd>@${carte.auteur}</dd></div>
           <div><dt>Numéro</dt><dd class="mono">N° ${String(carte.id).padStart(3, '0')}</dd></div>
           <div><dt>Créée le</dt><dd>${formatDate(carte.creeLe)}</dd></div>
@@ -125,7 +125,7 @@ export async function afficher(racine) {
           <button type="button" class="filtre" data-filiere="toutes" aria-pressed="true">Toutes</button>
           ${FILIERES.map(
             (f) => html`<button type="button" class="filtre" data-filiere="${f.id}" aria-pressed="false" style="--c:${f.couleur}">
-              <span class="pastille-filiere"></span>${f.nom}
+              <span class="pastille-filiere"></span>${f.nom} <span class="filtre__domaine">${f.domaine}</span>
             </button>`,
           )}
         </div>

@@ -68,9 +68,10 @@ export function jetonCourant(req) {
 }
 
 // Attache req.utilisateur (ou null) à chaque requête.
-export function chargerUtilisateur(db, config) {
+export function chargerUtilisateur(db) {
   const requete = db.prepare(`
-    SELECT u.id, u.identifiant, c.version AS version_certificat, c.nom_complet
+    SELECT u.id, u.identifiant, u.role, u.doit_changer_mdp, u.nom_complet AS nom_compte,
+      c.version AS version_certificat, c.nom_complet
     FROM sessions s
     JOIN utilisateurs u ON u.id = s.utilisateur_id
     LEFT JOIN certificats c ON c.utilisateur_id = u.id
@@ -83,32 +84,41 @@ export function chargerUtilisateur(db, config) {
       ? {
           id: ligne.id,
           identifiant: ligne.identifiant,
-          nomComplet: ligne.nom_complet ?? null,
+          nomComplet: ligne.nom_complet || ligne.nom_compte || null,
           certificatValide: ligne.version_certificat === VERSION_CERTIFICAT,
-          estAdmin: config.admins.includes(String(ligne.identifiant).toLowerCase()),
+          estAdmin: ligne.role === 'admin',
+          doitChangerMdp: ligne.doit_changer_mdp === 1,
         }
       : null;
     next();
   };
 }
 
-export function exigerConnexion(req, res, next) {
-  if (!req.utilisateur) return res.status(401).json({ erreur: 'Connecte-toi pour continuer.' });
-  next();
-}
+// Contrôles d'accès, du plus large au plus strict. Chacun renvoie un message d'erreur, ou null.
+const controles = {
+  connexion: (u) => (u ? null : [401, { erreur: 'Connecte-toi pour continuer.' }]),
+  motDePasse: (u) =>
+    controles.connexion(u) ??
+    (u.doitChangerMdp ? [403, { erreur: 'Choisis d’abord ton mot de passe personnel.', code: 'mot-de-passe' }] : null),
+  certificat: (u) =>
+    controles.motDePasse(u) ??
+    (u.certificatValide ? null : [403, { erreur: 'Signe d’abord le certificat de consentement.', code: 'certificat' }]),
+  admin: (u) => controles.motDePasse(u) ?? (u.estAdmin ? null : [403, { erreur: 'Réservé aux organisateurs.' }]),
+  // Lire les cartes : participant ayant signé, ou organisateur
+  lecture: (u) => controles.motDePasse(u) ?? (u.estAdmin ? null : controles.certificat(u)),
+};
 
-export function exigerCertificat(req, res, next) {
-  if (!req.utilisateur) return res.status(401).json({ erreur: 'Connecte-toi pour continuer.' });
-  if (!req.utilisateur.certificatValide) {
-    return res.status(403).json({ erreur: 'Signe d’abord le certificat de consentement.', code: 'certificat' });
-  }
+const exiger = (controle) => (req, res, next) => {
+  const refus = controle(req.utilisateur);
+  if (refus) return res.status(refus[0]).json(refus[1]);
   next();
-}
+};
 
-export function exigerAdmin(req, res, next) {
-  if (!req.utilisateur?.estAdmin) return res.status(403).json({ erreur: 'Réservé aux organisateurs.' });
-  next();
-}
+export const exigerConnexion = exiger(controles.connexion);
+export const exigerMotDePassePerso = exiger(controles.motDePasse);
+export const exigerCertificat = exiger(controles.certificat);
+export const exigerAdmin = exiger(controles.admin);
+export const exigerLecture = exiger(controles.lecture);
 
 // Limiteur simple en mémoire (suffisant pour une seule instance).
 export function limiteur({ max, fenetreMs }) {

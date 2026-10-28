@@ -426,6 +426,11 @@ main {
   gap: 1rem;
 }
 
+/* Un élément de grille ne doit pas s'élargir à cause d'un tableau défilant */
+.pile > * {
+  min-width: 0;
+}
+
 /* --- Panneaux à coins de visée ---------------------------------------- */
 
 .panneau {
@@ -605,6 +610,8 @@ fieldset > legend {
 input[type='text'],
 input[type='password'],
 input[type='search'],
+input[type='number'],
+input[type='datetime-local'],
 select,
 textarea {
   width: 100%;
@@ -616,6 +623,11 @@ textarea {
   border: 1px solid var(--ligne-forte);
   border-radius: 8px;
   transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
 }
 
 input::placeholder,

@@ -6,7 +6,7 @@ import { BUDGET, calculerCout, coutAttaque, degatsMaxPour, validerCarte } from '
 const base = () => ({
   nom: 'Carte test',
   sousTitre: '',
-  filiere: 'navigants',
+  filiere: 'ned',
   pv: 80,
   description: '',
   attaques: [{ nom: 'Attaque', energie: 2, degats: 50, effet: 'aucun', texte: '' }],

@@ -10,6 +10,7 @@ const DESSINS = {
   radar: `<path fill="currentColor" opacity=".35" d="M12 12 18.36 5.64A9 9 0 0 1 21 12z"/><g ${TRAIT} stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12 18.36 5.64"/></g><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="15.6" cy="15.2" r="1.3" fill="currentColor"/>`,
   bouclier: `<g ${TRAIT} stroke-width="2"><path d="M12 2.5l8 3v6c0 5-3.4 8.7-8 10.5-4.6-1.8-8-5.5-8-10.5v-6z"/><path d="M8 9.8l4 2.9 4-2.9M8 13.8l4 2.9 4-2.9"/></g>`,
   puce: `<g ${TRAIT} stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></g><rect x="9.5" y="9.5" width="5" height="5" rx=".6" fill="currentColor"/>`,
+  groupe: `<g ${TRAIT} stroke-width="1.9"><circle cx="9" cy="8.2" r="3.3"/><path d="M2.8 20c0-3.6 2.8-6.2 6.2-6.2s6.2 2.6 6.2 6.2"/><circle cx="16.8" cy="9.4" r="2.6"/><path d="M16 14.1c3.1-.1 5.4 2.3 5.4 5.6"/></g>`,
   tampon: `<g ${TRAIT} stroke-width="1.9"><circle cx="12" cy="4.6" r="2.2"/><path d="M10.6 6.7 10 11h4l-.6-4.3"/><path d="M4.5 16.2v-2.1c0-1.7 1.3-3 3-3h9c1.7 0 3 1.3 3 3v2.1z"/><path d="M5 19.8h14"/></g>`,
 
   // Icônes d'interface
@@ -24,6 +25,10 @@ const DESSINS = {
   croix: `<path ${TRAIT} stroke-width="2.4" d="M6 6l12 12M18 6 6 18"/>`,
   image: `<g ${TRAIT} stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 8"/></g>`,
   oeil: `<g ${TRAIT} stroke-width="2"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></g>`,
+  cadenas: `<g ${TRAIT} stroke-width="2"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></g>`,
+  copier: `<g ${TRAIT} stroke-width="2"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2"/><path d="M15.5 8.5V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9.5a1 1 0 0 0 1 1h3.5"/></g>`,
+  masquer: `<g ${TRAIT} stroke-width="2"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></g>`,
+  reglages: `<g ${TRAIT} stroke-width="2"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></g>`,
   retour: `<path ${TRAIT} stroke-width="2" d="M10 6l-6 6 6 6M4 12h16"/>`,
 };
 

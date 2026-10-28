@@ -8,14 +8,10 @@ export const LIMITE_CARTES = 5;
 export const BUDGET = 100;
 
 // Les filières jouent le rôle des « types » Pokémon.
-// Liste provisoire, à adapter aux filières réelles de la promo.
 export const FILIERES = [
-  { id: 'navigants', nom: 'Navigants', couleur: '#2b74c8', icone: 'avion' },
-  { id: 'mecaniciens', nom: 'Mécaniciens', couleur: '#d27a22', icone: 'cle' },
-  { id: 'controle', nom: 'Contrôle & Détection', couleur: '#2a9467', icone: 'radar' },
-  { id: 'protection', nom: 'Protection & Commandos', couleur: '#6d7b35', icone: 'bouclier' },
-  { id: 'cyber', nom: 'Systèmes & Cyber', couleur: '#7c63c4', icone: 'puce' },
-  { id: 'soutien', nom: 'Soutien & Admin', couleur: '#b83a3a', icone: 'tampon' },
+  { id: 'tesa', nom: 'TESA', domaine: 'Sciences techniques', couleur: '#d27a22', icone: 'cle' },
+  { id: 'ned', nom: 'NED', domaine: 'Sciences numériques', couleur: '#6a5acd', icone: 'puce' },
+  { id: 'egid', nom: 'EGID', domaine: 'Sciences sociales', couleur: '#2a9467', icone: 'groupe' },
 ];
 
 export const PV = { min: 30, max: 150, pas: 10 };

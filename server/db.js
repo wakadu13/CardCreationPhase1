@@ -7,6 +7,12 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
   id INTEGER PRIMARY KEY,
   identifiant TEXT NOT NULL UNIQUE COLLATE NOCASE,
   hash TEXT NOT NULL,
+  -- Nom saisi par les organisateurs à la création du compte
+  nom_complet TEXT NOT NULL DEFAULT '',
+  role TEXT NOT NULL DEFAULT 'participant' CHECK (role IN ('participant', 'admin')),
+  -- 1 tant que la personne n'a pas remplacé son mot de passe provisoire
+  doit_changer_mdp INTEGER NOT NULL DEFAULT 1,
+  derniere_connexion TEXT,
   cree_le TEXT NOT NULL
 );
 
@@ -39,6 +45,8 @@ CREATE TABLE IF NOT EXISTS cartes (
   image_y REAL NOT NULL DEFAULT 50,
   image_zoom REAL NOT NULL DEFAULT 1,
   statut TEXT NOT NULL DEFAULT 'visible' CHECK (statut IN ('visible', 'masquee')),
+  -- 'auto' (seuil de signalements atteint) ou 'organisation'
+  masquee_par TEXT,
   cree_le TEXT NOT NULL,
   modifie_le TEXT NOT NULL
 );
@@ -56,7 +64,29 @@ CREATE TABLE IF NOT EXISTS signalements (
   UNIQUE (carte_id, auteur_id)
 );
 CREATE INDEX IF NOT EXISTS signalements_carte ON signalements(carte_id);
+
+-- Réglages modifiables depuis l'espace organisateurs (dates de campagne, seuil…)
+CREATE TABLE IF NOT EXISTS parametres (
+  cle TEXT PRIMARY KEY,
+  valeur TEXT
+);
 `;
+
+// Ajoute les colonnes apparues après la première version à une base existante.
+function migrer(db) {
+  const colonnes = new Set(db.prepare('PRAGMA table_info(utilisateurs)').all().map((c) => c.name));
+  const ajouts = [
+    ['nom_complet', "TEXT NOT NULL DEFAULT ''"],
+    ['role', "TEXT NOT NULL DEFAULT 'participant'"],
+    ['doit_changer_mdp', 'INTEGER NOT NULL DEFAULT 0'],
+    ['derniere_connexion', 'TEXT'],
+  ];
+  for (const [nom, definition] of ajouts) {
+    if (!colonnes.has(nom)) db.exec(`ALTER TABLE utilisateurs ADD COLUMN ${nom} ${definition}`);
+  }
+  const colonnesCartes = new Set(db.prepare('PRAGMA table_info(cartes)').all().map((c) => c.name));
+  if (!colonnesCartes.has('masquee_par')) db.exec('ALTER TABLE cartes ADD COLUMN masquee_par TEXT');
+}
 
 export function ouvrirBase(chemin) {
   if (chemin !== ':memory:') mkdirSync(dirname(chemin), { recursive: true });
@@ -64,6 +94,7 @@ export function ouvrirBase(chemin) {
   db.exec('PRAGMA foreign_keys = ON;');
   if (chemin !== ':memory:') db.exec('PRAGMA journal_mode = WAL;');
   db.exec(SCHEMA);
+  migrer(db);
   return db;
 }
 
