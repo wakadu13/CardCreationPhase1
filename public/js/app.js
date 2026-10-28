@@ -2,6 +2,7 @@ import { api } from './api.js';
 import { etat, formatRebours, rafraichirEtat, statutCampagne, utilisateur } from './etat.js';
 import { html, monter } from './html.js';
 import { icone, logo } from './icones.js';
+import { enLigne, texte } from './textes.js';
 import { chargement, toast } from './ui.js';
 
 // acces : public · premier-vol (mot de passe provisoire) · connexion · certificat (participant) · admin
@@ -15,7 +16,7 @@ const ROUTES = [
   { motif: /^\/atelier(?:\/(\d+))?$/, page: 'atelier', acces: 'certificat' },
   { motif: /^\/galerie$/, page: 'galerie', acces: 'certificat' },
   { motif: /^\/registre$/, page: 'registre', acces: 'certificat' },
-  { motif: /^\/admin(?:\/(comptes|signalements|cartes|parametres))?$/, page: 'admin', acces: 'admin' },
+  { motif: /^\/admin(?:\/(comptes|signalements|cartes|parametres|personnalisation))?$/, page: 'admin', acces: 'admin' },
 ];
 
 // Page d'arrivée selon le profil.
@@ -86,7 +87,7 @@ function rendreBarre(pageActive = ROUTES.find((r) => r.motif.test(cheminCourant(
     document.getElementById('barre'),
     html`<a class="marque" href="#/">
         ${logo()}
-        <span><span class="marque__nom">${s.nomJeu}</span><span class="marque__sous">Jeu de cartes de cohésion</span></span>
+        <span><span class="marque__nom">${s.nomJeu}</span><span class="marque__sous">${texte('slogan')}</span></span>
       </a>
       <button type="button" class="btn btn--secondaire btn--petit nav__menu" aria-expanded="false" aria-controls="nav" data-menu>
         ${icone('menu')}<span class="sr-only">Menu</span>
@@ -94,6 +95,20 @@ function rendreBarre(pageActive = ROUTES.find((r) => r.motif.test(cheminCourant(
       <nav class="nav" id="nav" aria-label="Navigation principale">${liens}</nav>`,
   );
   rendreBandeau();
+  rendreTextesCommuns();
+}
+
+// Annonce des organisateurs et pied de page (textes personnalisables).
+function rendreTextesCommuns() {
+  const annonce = document.getElementById('annonce');
+  const contenu = enLigne('annonce');
+  annonce.hidden = !contenu;
+  monter(annonce, contenu ? html`<div class="annonce__contenu">${icone('megaphone')}<span>${contenu}</span></div>` : '');
+  const pied = enLigne('piedDePage');
+  monter(
+    document.getElementById('pied-texte'),
+    html`Projet étudiant non officiel${pied && html` · ${pied}`} · <a href="#/regles">règles du jeu</a>`,
+  );
 }
 
 function rendreBandeau() {

@@ -14,6 +14,24 @@ export const FILIERES = [
   { id: 'egid', nom: 'EGID', domaine: 'Sciences sociales', couleur: '#2a9467', icone: 'groupe' },
 ];
 
+// Cycle des forces : chaque filière domine la suivante, comme pierre-feuille-ciseaux.
+// TESA > NED > EGID > TESA
+export const CYCLE = ['tesa', 'ned', 'egid'];
+
+// Dégâts en plus quand on attaque la filière qu'on domine.
+export const BONUS_AVANTAGE = 30;
+
+// Filière dominée par `id` (son avantage)…
+export const avantageContre = (id) => CYCLE[(CYCLE.indexOf(id) + 1) % CYCLE.length];
+// …et filière qui domine `id` (sa faiblesse).
+export const faiblesseContre = (id) => CYCLE[(CYCLE.indexOf(id) + CYCLE.length - 1) % CYCLE.length];
+
+// Dégâts réellement infligés en phase 2, avantage de filière compris.
+export function degatsInfliges(degats, filiereAttaquant, filiereDefenseur) {
+  if (degats <= 0) return 0;
+  return degats + (avantageContre(filiereAttaquant) === filiereDefenseur ? BONUS_AVANTAGE : 0);
+}
+
 export const PV = { min: 30, max: 150, pas: 10 };
 
 export const ATTAQUE = {

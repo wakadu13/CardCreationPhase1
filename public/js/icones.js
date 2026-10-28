@@ -29,8 +29,11 @@ const DESSINS = {
   copier: `<g ${TRAIT} stroke-width="2"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2"/><path d="M15.5 8.5V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9.5a1 1 0 0 0 1 1h3.5"/></g>`,
   masquer: `<g ${TRAIT} stroke-width="2"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></g>`,
   reglages: `<g ${TRAIT} stroke-width="2"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></g>`,
+  megaphone: `<g ${TRAIT} stroke-width="2"><path d="M4 10v4h3l7 4V6L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6M7 14l1.5 5h2.5l-1-4.5"/></g>`,
   retour: `<path ${TRAIT} stroke-width="2" d="M10 6l-6 6 6 6M4 12h16"/>`,
 };
+
+export const dessinIcone = (nom) => DESSINS[nom] ?? '';
 
 export function icone(nom, classe = '') {
   return raw(`<svg viewBox="0 0 24 24" class="icone ${classe}" aria-hidden="true" focusable="false">${DESSINS[nom] ?? ''}</svg>`);

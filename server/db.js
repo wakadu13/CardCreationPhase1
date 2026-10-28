@@ -70,6 +70,12 @@ CREATE TABLE IF NOT EXISTS parametres (
   cle TEXT PRIMARY KEY,
   valeur TEXT
 );
+
+-- Textes du site personnalisés par les organisateurs (seulement ceux qui diffèrent de l'origine)
+CREATE TABLE IF NOT EXISTS textes (
+  cle TEXT PRIMARY KEY,
+  valeur TEXT NOT NULL
+);
 `;
 
 // Ajoute les colonnes apparues après la première version à une base existante.

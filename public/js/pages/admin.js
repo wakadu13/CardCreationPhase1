@@ -1,10 +1,12 @@
 import { FILIERES, LIMITE_CARTES, MOTIFS_SIGNALEMENT, filiere } from '/shared/regles.js';
+import { SECTIONS_TEXTES, VARIABLES, champTexte } from '/shared/textes.js';
 import { actualiser, naviguer } from '../app.js';
 import { api } from '../api.js';
 import { rendreCarte } from '../carte.js';
 import { etat, formatDate } from '../etat.js';
 import { html, monter } from '../html.js';
 import { icone } from '../icones.js';
+import { formater } from '../textes.js';
 import { confirmer, ouvrirDialogue, pendant, toast } from '../ui.js';
 
 export const titre = 'Organisation';
@@ -22,6 +24,7 @@ const ONGLETS = [
   { id: 'signalements', nom: 'Signalements' },
   { id: 'cartes', nom: 'Cartes' },
   { id: 'parametres', nom: 'Paramètres' },
+  { id: 'personnalisation', nom: 'Personnalisation' },
 ];
 
 // --- Outils : copier, CSV, fiches à imprimer ------------------------------------------------
@@ -580,12 +583,161 @@ async function ongletParametres(zone) {
   });
 }
 
+// --- Onglet Personnalisation : textes du site -----------------------------------------------------
+
+function apercuTexte(champ, valeur) {
+  const rendu = formater(valeur, { enLigne: champ.type === 'ligne' });
+  return rendu || html`<span class="discret">Vide : rien ne s’affiche.</span>`;
+}
+
+function champPerso(champ, valeur, defaut) {
+  const id = `perso-${champ.cle.replace(/\./g, '-')}`;
+  const lignes = valeur.split('\n').length + Math.floor(valeur.length / 90);
+  return html`<div class="champ champ-perso ${valeur !== defaut ? 'est-personnalise' : ''}" data-cle="${champ.cle}">
+    <div class="champ__ligne">
+      <label for="${id}">${champ.libelle}${champ.obligatoire && html` <span aria-hidden="true">*</span>`}</label>
+      <span class="champ-perso__etat">
+        <span class="puce puce--or champ-perso__badge">Personnalisé</span>
+        <span class="compteur" data-compteur>${[...valeur].length}/${champ.max}</span>
+      </span>
+    </div>
+    ${champ.type === 'texte'
+      ? html`<textarea id="${id}" name="${champ.cle}" maxlength="${champ.max}" rows="${Math.min(10, Math.max(3, lignes + 1))}">${valeur}</textarea>`
+      : html`<input id="${id}" name="${champ.cle}" type="text" maxlength="${champ.max}" value="${valeur}" />`}
+    ${champ.aide && html`<span class="champ__aide">${champ.aide}</span>`}
+    <div class="champ-perso__pied">
+      <div class="apercu-texte texte-riche" data-apercu aria-label="Aperçu">${apercuTexte(champ, valeur)}</div>
+      <button type="button" class="lien-bouton" data-retablir>Texte d’origine</button>
+    </div>
+  </div>`;
+}
+
+async function ongletPersonnalisation(zone) {
+  const { valeurs, defauts } = await api('/admin/personnalisation');
+  monter(
+    zone,
+    html`<section class="panneau panneau--hud aide-perso">
+        <h2>Personnaliser le site</h2>
+        <p>Modifie les textes vus par les participants sans toucher au code. Ils changent pour tout le monde dès l’enregistrement.</p>
+        <div class="aide-perso__grille">
+          <div>
+            <h3 class="petit-titre">Mise en forme</h3>
+            <ul class="memo">
+              <li><code>**gras**</code> → <strong>gras</strong></li>
+              <li><code>*italique*</code> → <em>italique</em></li>
+              <li><code>[texte](https://…)</code> → un lien</li>
+              <li><code>- </code> en début de ligne → une liste</li>
+              <li>une ligne vide → un nouveau paragraphe</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="petit-titre">Variables (mises à jour automatiquement)</h3>
+            <ul class="memo">
+              ${VARIABLES.map((v) => html`<li><code>{${v.nom}}</code> → ${formater(`{${v.nom}}`, { enLigne: true }) || '—'} <span class="discret">(${v.aide})</span></li>`)}
+            </ul>
+          </div>
+        </div>
+      </section>
+      <form class="personnalisation pile" novalidate>
+        ${SECTIONS_TEXTES.map(
+          (section) => html`<fieldset class="panneau">
+            <legend class="panneau__legende">${section.titre}</legend>
+            ${section.champs.map((champ) => champPerso(champ, valeurs[champ.cle], defauts[champ.cle]))}
+          </fieldset>`,
+        )}
+        <div class="barre-enregistrement">
+          <span class="barre-enregistrement__etat" data-modifs aria-live="polite">Aucune modification en cours.</span>
+          <div class="erreur-formulaire" role="alert"></div>
+          <button type="button" class="btn btn--secondaire" data-annuler disabled>Annuler</button>
+          <button type="submit" class="btn" disabled>Enregistrer</button>
+        </div>
+      </form>`,
+  );
+
+  const form = zone.querySelector('form');
+  const etatModifs = form.querySelector('[data-modifs]');
+  const boutonEnregistrer = form.querySelector('[type=submit]');
+  const boutonAnnuler = form.querySelector('[data-annuler]');
+
+  const lireValeurs = () => Object.fromEntries([...form.querySelectorAll('[name]')].map((el) => [el.name, el.value]));
+  const modifications = () => Object.entries(lireValeurs()).filter(([cle, v]) => v !== valeurs[cle]).length;
+
+  function majChamp(bloc) {
+    const champ = champTexte(bloc.dataset.cle);
+    const valeur = bloc.querySelector('[name]').value;
+    bloc.querySelector('[data-compteur]').textContent = `${[...valeur].length}/${champ.max}`;
+    monter(bloc.querySelector('[data-apercu]'), apercuTexte(champ, valeur));
+    bloc.classList.toggle('est-personnalise', valeur.trim() !== defauts[champ.cle]);
+    bloc.classList.toggle('est-modifie', valeur !== valeurs[champ.cle]);
+  }
+
+  function majBarre() {
+    const n = modifications();
+    etatModifs.textContent = n ? `${n} texte${n > 1 ? 's' : ''} modifié${n > 1 ? 's' : ''}, pas encore enregistré${n > 1 ? 's' : ''}.` : 'Aucune modification en cours.';
+    form.classList.toggle('a-des-modifs', n > 0);
+    boutonEnregistrer.disabled = n === 0;
+    boutonAnnuler.disabled = n === 0;
+  }
+
+  form.addEventListener('input', (ev) => {
+    const bloc = ev.target.closest('[data-cle]');
+    if (!bloc) return;
+    majChamp(bloc);
+    majBarre();
+  });
+
+  form.addEventListener('click', (ev) => {
+    const bouton = ev.target.closest('[data-retablir]');
+    if (!bouton) return;
+    const bloc = bouton.closest('[data-cle]');
+    const entree = bloc.querySelector('[name]');
+    entree.value = defauts[bloc.dataset.cle];
+    majChamp(bloc);
+    majBarre();
+    entree.focus();
+  });
+
+  boutonAnnuler.addEventListener('click', () => ongletPersonnalisation(zone));
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const erreur = form.querySelector('.erreur-formulaire');
+    erreur.textContent = '';
+    await pendant(boutonEnregistrer, async () => {
+      try {
+        await api('/admin/personnalisation', { methode: 'PUT', corps: { valeurs: lireValeurs() } });
+        await actualiser();
+        toast('Textes enregistrés : le site est à jour.');
+        await ongletPersonnalisation(zone);
+      } catch (err) {
+        erreur.textContent = err.message;
+        majBarre();
+      }
+    });
+  });
+
+  // Avertit avant de quitter la page avec des textes non enregistrés.
+  const avantDepart = (ev) => {
+    if (!form.isConnected || modifications() === 0) return;
+    ev.preventDefault();
+    ev.returnValue = '';
+  };
+  window.addEventListener('beforeunload', avantDepart);
+  return () => window.removeEventListener('beforeunload', avantDepart);
+}
+
 // --- Page ----------------------------------------------------------------------------------------
 
 // Remet à jour les chiffres de l'en-tête après une action sur les comptes.
 let rafraichirEntete = async () => {};
 
-const AFFICHEURS = { comptes: ongletComptes, signalements: ongletSignalements, cartes: ongletCartes, parametres: ongletParametres };
+const AFFICHEURS = {
+  comptes: ongletComptes,
+  signalements: ongletSignalements,
+  cartes: ongletCartes,
+  parametres: ongletParametres,
+  personnalisation: ongletPersonnalisation,
+};
 
 function enteteResume(resume, onglet) {
   const badges = { comptes: resume.comptes, signalements: resume.aTraiter, cartes: resume.cartes };
@@ -628,5 +780,8 @@ export async function afficher(racine, onglet = 'comptes') {
     const recharger = () => naviguer(`/admin/${onglet}`);
     brancherActionsCartes(zone, recharger);
   }
-  await AFFICHEURS[onglet](zone, racine);
+  // Sur mobile, les onglets défilent : on amène l'onglet actif à l'écran une fois la page affichée.
+  setTimeout(() => racine.querySelector('.onglets--admin [aria-current]')?.scrollIntoView({ block: 'nearest', inline: 'center' }), 0);
+  // Un onglet peut renvoyer une fonction de nettoyage (appelée en quittant la page).
+  return AFFICHEURS[onglet](zone, racine);
 }

@@ -9,6 +9,7 @@ import { gestionnaireErreurs } from './erreurs.js';
 import { routesAdmin } from './routes/admin.js';
 import { routesCartes } from './routes/cartes.js';
 import { routesCompte } from './routes/compte.js';
+import { chargerTextes, textesEffectifs } from './textes.js';
 
 const RACINE = fileURLToPath(new URL('..', import.meta.url));
 const POLICES = ['barlow', 'barlow-condensed', 'saira-stencil-one', 'share-tech-mono'];
@@ -56,6 +57,7 @@ function origineMemeSite(req, res, next) {
 export function creerApp({ db, config, maintenant = () => new Date() }) {
   // Les réglages modifiés depuis l'espace organisateurs priment sur le fichier .env.
   chargerParametres(db, config);
+  chargerTextes(db, config);
 
   const app = express();
   app.disable('x-powered-by');
@@ -76,8 +78,10 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
   const compte = routesCompte(ctx);
 
   api.get('/etat', (req, res) => {
+    const textes = textesEffectifs(config);
     res.json({
-      nomJeu: config.nomJeu,
+      nomJeu: textes.nomJeu,
+      textes,
       promo: config.promo,
       maintenant: maintenant().toISOString(),
       campagne: {

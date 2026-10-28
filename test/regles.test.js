@@ -1,7 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EXEMPLES } from '../shared/exemples.js';
-import { BUDGET, calculerCout, coutAttaque, degatsMaxPour, validerCarte } from '../shared/regles.js';
+import {
+  BONUS_AVANTAGE,
+  BUDGET,
+  CYCLE,
+  FILIERES,
+  avantageContre,
+  calculerCout,
+  coutAttaque,
+  degatsInfliges,
+  degatsMaxPour,
+  faiblesseContre,
+  validerCarte,
+} from '../shared/regles.js';
+import { CHAMPS_TEXTES, nettoyerTexte } from '../shared/textes.js';
 
 const base = () => ({
   nom: 'Carte test',
@@ -70,4 +83,29 @@ test('les textes sont nettoyés (espaces, caractères de contrôle) et limités'
   const r = validerCarte({ ...base(), nom: '  Le\u0000  Major\n ' });
   assert.equal(r.carte.nom, 'Le Major');
   assert.equal(validerCarte({ ...base(), nom: 'x'.repeat(33) }).ok, false);
+});
+
+test('cycle des filières : TESA > NED > EGID > TESA', () => {
+  assert.deepEqual([...CYCLE].sort(), FILIERES.map((f) => f.id).sort());
+  assert.equal(avantageContre('tesa'), 'ned');
+  assert.equal(avantageContre('ned'), 'egid');
+  assert.equal(avantageContre('egid'), 'tesa');
+  assert.equal(faiblesseContre('tesa'), 'egid');
+  assert.equal(faiblesseContre('ned'), 'tesa');
+  assert.equal(faiblesseContre('egid'), 'ned');
+});
+
+test('avantage de filière : +30 dégâts contre la filière dominée seulement', () => {
+  assert.equal(degatsInfliges(50, 'tesa', 'ned'), 50 + BONUS_AVANTAGE);
+  assert.equal(degatsInfliges(50, 'ned', 'tesa'), 50);
+  assert.equal(degatsInfliges(50, 'egid', 'egid'), 50);
+  assert.equal(degatsInfliges(0, 'tesa', 'ned'), 0);
+});
+
+test('textes personnalisables : clés uniques, valeurs d’origine dans les limites', () => {
+  const cles = CHAMPS_TEXTES.map((c) => c.cle);
+  assert.equal(new Set(cles).size, cles.length);
+  for (const c of CHAMPS_TEXTES) assert.ok([...c.defaut].length <= c.max, c.cle);
+  assert.equal(nettoyerTexte('  Bonjour\n\n\n\nà tous \u0000 ', 'texte'), 'Bonjour\n\nà tous');
+  assert.equal(nettoyerTexte('une\nligne', 'ligne'), 'une ligne');
 });

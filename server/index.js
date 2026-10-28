@@ -3,6 +3,7 @@ import { creerApp } from './app.js';
 import { assurerAdmin } from './comptes.js';
 import { lireConfig, statutCampagne } from './config.js';
 import { ouvrirBase } from './db.js';
+import { textesEffectifs } from './textes.js';
 
 if (existsSync('.env')) process.loadEnvFile('.env');
 
@@ -15,7 +16,7 @@ const admin = await assurerAdmin(db, { identifiant: config.adminIdentifiant, mot
 
 app.listen(config.port, () => {
   const fmt = (d) => (d ? d.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' }) : '—');
-  console.log(`✈  ${config.nomJeu} — http://localhost:${config.port}`);
+  console.log(`✈  ${textesEffectifs(config).nomJeu} — http://localhost:${config.port}`);
   console.log(`   Campagne : ${statutCampagne(config)} (début ${fmt(config.campagneDebut)}, fin ${fmt(config.campagneFin)})`);
   console.log(`   Base : ${config.cheminBase} · seuil de masquage : ${config.seuilSignalements} signalements`);
   if (admin.cree) {

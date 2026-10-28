@@ -9,6 +9,8 @@ Design inspiré de l’École de l’air de Salon-de-Provence : nuit de vol et i
 | ![Comptes](docs/apercus/organisation-comptes.jpg) | ![Signalements](docs/apercus/organisation-signalements.jpg) |
 | **Atelier de conception** | **Galerie** |
 | ![Atelier](docs/apercus/atelier.jpg) | ![Galerie](docs/apercus/galerie.jpg) |
+| **Personnalisation des textes** | **Cycle des filières (règles)** |
+| ![Personnalisation](docs/apercus/personnalisation.jpg) | ![Cycle](docs/apercus/cycle.jpg) |
 
 ## Ce que fait le site
 
@@ -27,6 +29,7 @@ Design inspiré de l’École de l’air de Salon-de-Provence : nuit de vol et i
 - **Signalements** : les cartes signalées, avec le motif, le commentaire et l’auteur de chaque signalement. Actions possibles : masquer, réafficher, classer les signalements, supprimer.
 - **Cartes** : toutes les cartes, avec filtres par filière et par statut, et les mêmes actions.
 - **Paramètres** : dates d’ouverture et de clôture de la campagne (bouton « ouvrir maintenant pour 7 jours »), seuil de masquage automatique, nom de la promo. Plus l’**export JSON** des cartes pour la phase 2.
+- **Personnalisation** : les textes du site, modifiables sans toucher au code (voir plus bas).
 
 ## Filières
 
@@ -38,7 +41,17 @@ Les filières jouent le rôle des types Pokémon. Chacune donne sa couleur et so
 | **NED** | Sciences numériques | violet, emblème puce électronique |
 | **EGID** | Sciences sociales | vert, emblème groupe de personnes |
 
-Les forces et faiblesses entre filières seront fixées pour la phase 2. La liste se modifie dans `shared/regles.js`.
+### Cycle des forces : TESA > NED > EGID > TESA
+
+Comme à pierre-feuille-ciseaux, chaque filière en domine une autre. Une attaque portée contre la filière qu’on domine inflige **+30 dégâts**. Chaque carte affiche en bas son **avantage** (la filière qu’elle domine) et sa **faiblesse** (celle qui la domine).
+
+| Filière | Avantage contre | Faiblesse face à |
+| --- | --- | --- |
+| TESA | NED | EGID |
+| NED | EGID | TESA |
+| EGID | TESA | NED |
+
+La page Règles montre le cycle en schéma, avec une phrase humoristique pour chaque avantage (modifiable dans Personnalisation). Le calcul pour la phase 2 est prêt : `degatsInfliges(degats, filiereAttaquant, filiereDefenseur)` dans `shared/regles.js`, où se règlent aussi l’ordre du cycle (`CYCLE`) et le bonus (`BONUS_AVANTAGE`).
 
 ## Équilibrage
 
@@ -55,6 +68,19 @@ Le navigateur et le serveur appliquent les mêmes règles (`shared/regles.js`), 
 - Un signalement par personne et par carte, avec un motif. Il est anonyme pour l’auteur de la carte et visible des organisateurs.
 - Au bout de **3 signalements** (réglable), la carte est masquée automatiquement. Seul son auteur la voit encore, avec les motifs, et peut la supprimer pour en créer une autre. Une carte masquée ne peut plus être modifiée.
 - Les organisateurs traitent ensuite les signalements dans l’onglet du même nom : masquer une carte même sous le seuil, la réafficher en classant les signalements (les mêmes personnes ne pourront pas la re-signaler), ou la supprimer.
+
+## Personnaliser le site sans toucher au code
+
+Dans **Organisation › Personnalisation**, les organisateurs modifient les textes vus par les participants :
+
+- **Partout** : nom du jeu, sous-titre du logo, **annonce** affichée en haut de toutes les pages (« Clôture dimanche à 20 h ! »), pied de page ;
+- **Accueil** : présentation, les trois étapes, message sous la connexion, description des phases ;
+- **Pages des participants** : message des organisateurs en haut du hangar, consignes de l’atelier, introduction de la galerie et du certificat ;
+- **Règles** : introduction, phrases du cycle des filières, et une **section libre** (calendrier, lots à gagner…).
+
+Chaque texte a un aperçu en direct et un bouton « Texte d’origine ». Un texte vide ne s’affiche pas. Mise en forme possible : `**gras**`, `*italique*`, `[lien](https://…)`, listes avec `- `. Des variables restent à jour toutes seules : `{nomJeu}`, `{promo}`, `{limiteCartes}`, `{seuil}`, `{budget}`. Le HTML saisi n’est jamais interprété (pas de risque d’injecter du code).
+
+Le design, les règles du jeu et les engagements du certificat ne se modifient pas depuis le site : changer un engagement obligerait tout le monde à signer à nouveau. La liste des textes modifiables est dans `shared/textes.js` : pour en ajouter un, il suffit d’y déclarer une entrée et de l’afficher dans la page voulue.
 
 ## Lancer le site
 
@@ -103,7 +129,7 @@ Copier `.env.example` en `.env`. Toutes les valeurs sont facultatives.
 
 | Variable | Rôle | Par défaut |
 | --- | --- | --- |
-| `NOM_JEU` | Nom affiché | `Les As de Salon` |
+| `NOM_JEU` | Nom affiché par défaut (modifiable ensuite dans Organisation › Personnalisation) | `Les As de Salon` |
 | `ADMIN_IDENTIFIANT` | Identifiant du compte organisateur créé au premier démarrage | `admin` |
 | `ADMIN_MOT_DE_PASSE` | Son mot de passe provisoire (sinon généré et affiché dans la console) | généré |
 | `PROMO`, `SEUIL_SIGNALEMENTS`, `CAMPAGNE_DEBUT`, `CAMPAGNE_FIN` | Valeurs de départ, modifiables ensuite dans Organisation › Paramètres | vide, `3`, campagne toujours ouverte |
@@ -124,11 +150,13 @@ Commande de démarrage : `npm start`. Le mot de passe provisoire de l’organisa
 
 ```
 shared/        Règles partagées navigateur + serveur
-  regles.js      budget, filières, effets, validation d'une carte
+  regles.js      budget, filières et cycle, effets, validation d'une carte
+  textes.js      textes personnalisables et leurs valeurs d'origine
   certificat.js  texte et version du certificat de consentement
   exemples.js    cartes d'exemple (accueil, règles)
 server/        API Express + SQLite (node:sqlite)
   comptes.js     création des comptes, mots de passe provisoires, compte organisateur
+  textes.js      textes personnalisés enregistrés en base
   compte-admin.js  commande de secours npm run compte-admin
   routes/        connexion et certificat, cartes et signalements, organisation
 public/        Site (HTML, CSS et JavaScript sans étape de build)

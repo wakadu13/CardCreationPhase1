@@ -1,9 +1,10 @@
-import { FILIERES, MOTIFS_SIGNALEMENT, filiere } from '/shared/regles.js';
+import { BONUS_AVANTAGE, FILIERES, MOTIFS_SIGNALEMENT, avantageContre, faiblesseContre, filiere } from '/shared/regles.js';
 import { api } from '../api.js';
 import { rendreCarte, rendreInclinable } from '../carte.js';
 import { etat, formatDate, statutCampagne } from '../etat.js';
 import { html, monter } from '../html.js';
 import { icone } from '../icones.js';
+import { enBloc } from '../textes.js';
 import { ouvrirDialogue, pendant, toast } from '../ui.js';
 
 export const titre = 'Galerie';
@@ -83,6 +84,7 @@ function dialogueCarte(carte, surChangement) {
       <div class="detail-carte__infos">
         <dl class="fiche">
           <div><dt>Filière</dt><dd><span class="pastille-filiere" style="--c:${f?.couleur}"></span> ${f?.nom} · ${f?.domaine}</dd></div>
+          <div><dt>Avantage / faiblesse</dt><dd>+${BONUS_AVANTAGE} contre ${filiere(avantageContre(carte.filiere))?.nom} · subit +${BONUS_AVANTAGE} face à ${filiere(faiblesseContre(carte.filiere))?.nom}</dd></div>
           <div><dt>Conçue par</dt><dd>@${carte.auteur}</dd></div>
           <div><dt>Numéro</dt><dd class="mono">N° ${String(carte.id).padStart(3, '0')}</dd></div>
           <div><dt>Créée le</dt><dd>${formatDate(carte.creeLe)}</dd></div>
@@ -117,7 +119,7 @@ export async function afficher(racine) {
         <div>
           <p class="surtitre">Galerie de la promo</p>
           <h1>Toutes les cartes</h1>
-          <p>Clique sur une carte pour l’agrandir. Si une carte va trop loin, signale-la : au bout de ${etat.serveur.seuilSignalements} signalements, elle est masquée.</p>
+          <div class="texte-riche">${enBloc('galerie.intro')}</div>
         </div>
       </div>
       <div class="barre-filtres panneau">

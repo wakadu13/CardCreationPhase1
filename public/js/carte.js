@@ -1,4 +1,4 @@
-import { effet, filiere } from '/shared/regles.js';
+import { BONUS_AVANTAGE, avantageContre, effet, faiblesseContre, filiere } from '/shared/regles.js';
 import { etat } from './etat.js';
 import { html, raw } from './html.js';
 import { cielParDefaut, icone } from './icones.js';
@@ -15,6 +15,22 @@ function rendreAttaque(a) {
       <span class="attaque__degats">${a.degats > 0 ? a.degats : ''}</span>
     </div>
     ${(e?.texte || a.texte) && html`<p class="attaque__texte">${e?.texte}${e?.texte && a.texte ? ' ' : ''}${a.texte && html`<em>${a.texte}</em>`}</p>`}
+  </div>`;
+}
+
+// Pastille d'une filière (couleur + emblème) pour la ligne Avantage / Faiblesse.
+function pastille(id) {
+  const f = filiere(id);
+  if (!f) return '';
+  return html`<span class="carte__type" style="--t:${f.couleur}" title="${f.nom} · ${f.domaine}">${icone(f.icone)}</span><b>${f.nom}</b>`;
+}
+
+// Ligne façon « faiblesse / résistance » : qui on domine, qui nous domine.
+function rendreTactique(id) {
+  if (!filiere(id)) return '';
+  return html`<div class="carte__tactique">
+    <span class="carte__tactique-cote"><span class="carte__tactique-lib">Avantage</span>${pastille(avantageContre(id))}<span class="carte__bonus">+${BONUS_AVANTAGE}</span></span>
+    <span class="carte__tactique-cote"><span class="carte__tactique-lib">Faiblesse</span>${pastille(faiblesseContre(id))}<span class="carte__bonus carte__bonus--subi">+${BONUS_AVANTAGE}</span></span>
   </div>`;
 }
 
@@ -41,6 +57,7 @@ export function rendreCarte(c, { largeur = 300, numero = c.id, classe = '', voil
         ${(c.attaques ?? []).map(rendreAttaque)}
         ${c.description && html`<p class="carte__description">${c.description}</p>`}
       </div>
+      ${rendreTactique(c.filiere)}
       <footer class="carte__pied">
         <span class="carte__auteur">${c.auteur ? `@${c.auteur}` : 'Conception en cours'}</span>
         <span class="carte__marque">${marque}<span class="jeton"></span></span>

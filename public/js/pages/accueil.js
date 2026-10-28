@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { rendreCarte, rendreInclinable } from '../carte.js';
 import { etat, formatDate } from '../etat.js';
 import { html, monter } from '../html.js';
+import { enBloc, enLigne, estVide } from '../textes.js';
 import { pendant, toast } from '../ui.js';
 
 export const titre = 'Bienvenue';
@@ -20,9 +21,7 @@ function formulaireConnexion() {
       <input id="cx-mdp" name="motDePasse" type="password" autocomplete="current-password" required />
     </div>
     <button class="btn btn--bloc" type="submit">Se connecter</button>
-    <p class="auth__note">
-      Pas encore de compte ? Ils sont créés par les organisateurs pour les participants choisis : demande-leur tes identifiants.
-    </p>
+    ${!estVide('accueil.noteConnexion') && html`<p class="auth__note">${enLigne('accueil.noteConnexion')}</p>`}
   </form>`;
 }
 
@@ -39,34 +38,31 @@ function phases() {
     <div class="phase phase--active">
       <span class="phase__num mono">Phase 1 · 1 semaine</span>
       <h3>Campagne de création</h3>
-      <p>Signe le certificat de consentement, puis conçois jusqu’à <strong>${etat.serveur.limiteCartes} cartes</strong>. Une carte qui va trop loin se signale.</p>
+      <div class="texte-riche">${enBloc('accueil.phase1')}</div>
       <span class="puce puce--or">${dates}</span>
     </div>
     <div class="phase">
       <span class="phase__num mono">Phase 2 · 2 semaines</span>
       <h3>Le jeu</h3>
-      <p>Les cartes de la phase 1 s’affrontent, filière contre filière. Des fenêtres d’ajout de cartes seront annoncées à l’avance.</p>
+      <div class="texte-riche">${enBloc('accueil.phase2')}</div>
       <span class="puce">Bientôt</span>
     </div>
   </section>`;
 }
 
 export function afficher(main) {
+  const etapes = ['accueil.etape1', 'accueil.etape2', 'accueil.etape3'].filter((cle) => !estVide(cle));
   monter(
     main,
     html`<section class="accueil">
         <div class="accueil__texte">
-          <p class="surtitre">Salon-de-Provence · Phase 1</p>
+          ${!estVide('accueil.surtitre') && html`<p class="surtitre">${enLigne('accueil.surtitre')}</p>`}
           <h1 class="titre-pochoir">${etat.serveur.nomJeu}</h1>
-          <p class="accueil__accroche">
-            Le jeu de cartes de la promo, fait par la promo. Pendant une semaine, chacun conçoit ses cartes&nbsp;:
-            un nom, une filière, des points de vie, des attaques… et beaucoup d’autodérision.
-          </p>
-          <ol class="etapes">
-            <li><span class="etapes__num">1</span><span><strong>Connecte-toi</strong> avec les identifiants reçus des organisateurs</span></li>
-            <li><span class="etapes__num">2</span><span><strong>Signe le certificat</strong> de consentement</span></li>
-            <li><span class="etapes__num">3</span><span><strong>Conçois jusqu’à ${etat.serveur.limiteCartes} cartes</strong> dans l’atelier</span></li>
-          </ol>
+          <div class="accueil__accroche texte-riche">${enBloc('accueil.accroche')}</div>
+          ${etapes.length > 0 &&
+          html`<ol class="etapes">
+            ${etapes.map((cle, i) => html`<li><span class="etapes__num">${i + 1}</span><span>${enLigne(cle)}</span></li>`)}
+          </ol>`}
           <div class="panneau panneau--hud auth">
             <h2 class="auth__titre">Connexion</h2>
             <div id="auth-corps">${formulaireConnexion()}</div>

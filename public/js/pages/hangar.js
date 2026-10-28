@@ -5,6 +5,7 @@ import { rendreCarte, rendreInclinable } from '../carte.js';
 import { etat, formatDate, formatRebours, statutCampagne, utilisateur } from '../etat.js';
 import { html, monter } from '../html.js';
 import { icone } from '../icones.js';
+import { enBloc, estVide } from '../textes.js';
 import { confirmer, toast } from '../ui.js';
 
 export const titre = 'Mon hangar';
@@ -73,7 +74,7 @@ function panneauCampagne(stats) {
       <ul class="barres">
         ${FILIERES.map(
           (f) => html`<li style="--c:${f.couleur}">
-            <span class="barres__nom"><span class="pastille-filiere"></span>${f.nom} <span class="discret">· ${f.domaine}</span></span>
+            <span class="barres__nom" title="${f.domaine}"><span class="pastille-filiere"></span>${f.nom}</span>
             <span class="barres__piste"><span class="barres__valeur" style="width:${(stats.parFiliere[f.id] / max) * 100}%"></span></span>
             <span class="barres__n mono">${stats.parFiliere[f.id]}</span>
           </li>`,
@@ -109,6 +110,11 @@ async function charger(main) {
           <a class="btn btn--secondaire" href="#/galerie">Voir la galerie</a>
         </div>
       </div>
+      ${!estVide('hangar.message') &&
+      html`<aside class="mot-organisation panneau" aria-label="Message des organisateurs">
+        <p class="surtitre">Message des organisateurs</p>
+        <div class="texte-riche">${enBloc('hangar.message')}</div>
+      </aside>`}
       <div class="hangar">
         <section aria-label="Mes cartes">
           <div class="jauge-quota" role="img" aria-label="${cartes.length} cartes sur ${limite}">

@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { etat, formatDate, utilisateur } from '../etat.js';
 import { html, monter, raw } from '../html.js';
 import { icone } from '../icones.js';
+import { enBloc } from '../textes.js';
 import { pendant, toast } from '../ui.js';
 
 export const titre = 'Certificat de consentement';
@@ -74,10 +75,7 @@ function vueFormulaire(data) {
       <div>
         <p class="surtitre">Avant d’entrer au hangar</p>
         <h1>Certificat de consentement</h1>
-        <p>
-          C’est la protection de base du jeu&nbsp;: tout le monde accepte les mêmes règles avant de créer ou de voir la moindre carte.
-          Lis chaque engagement et coche-le.
-        </p>
+        <div class="texte-riche">${enBloc('certificat.intro')}</div>
       </div>
     </div>
     ${ancienne &&

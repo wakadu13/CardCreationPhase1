@@ -338,6 +338,50 @@ test('paramètres de campagne modifiables par les organisateurs et conservés en
   assert.equal((await admin.put('/api/admin/parametres', { promo: '', campagneDebut: DEBUT, campagneFin: FIN, seuilSignalements: 3 })).status, 200);
 });
 
+test('personnalisation des textes : réservée aux organisateurs, validée, conservée en base', async () => {
+  const curieux = await participant('curieux2');
+  assert.equal((await curieux.get('/api/admin/personnalisation')).status, 403);
+  assert.equal((await curieux.put('/api/admin/personnalisation', { valeurs: { annonce: 'Piraté' } })).status, 403);
+
+  const { corps } = await admin.get('/api/admin/personnalisation');
+  assert.equal(corps.valeurs.nomJeu, 'Les As de Salon');
+  assert.equal(corps.defauts.annonce, '');
+
+  assert.equal((await admin.put('/api/admin/personnalisation', { valeurs: { inconnu: 'x' } })).status, 400);
+  assert.equal((await admin.put('/api/admin/personnalisation', { valeurs: { nomJeu: '   ' } })).status, 400);
+  assert.equal((await admin.put('/api/admin/personnalisation', { valeurs: { annonce: 'x'.repeat(201) } })).status, 400);
+  // Tout ou rien : la valeur valide du même envoi n'est pas enregistrée
+  assert.equal((await admin.put('/api/admin/personnalisation', { valeurs: { slogan: 'Nouveau', nomJeu: '' } })).status, 400);
+  assert.equal((await curieux.get('/api/etat')).corps.textes.slogan, 'Jeu de cartes de cohésion');
+
+  const r = await admin.put('/api/admin/personnalisation', {
+    valeurs: {
+      nomJeu: 'Les As de la Promo',
+      annonce: 'Clôture **dimanche**\nà 20 h',
+      'regles.sectionTexte': 'Ligne 1\r\nLigne 2\u0007',
+      'accueil.surtitre': 'Salon-de-Provence · Phase 1',
+    },
+  });
+  assert.equal(r.status, 200);
+  const etat = (await curieux.get('/api/etat')).corps;
+  assert.equal(etat.nomJeu, 'Les As de la Promo');
+  assert.equal(etat.textes.annonce, 'Clôture **dimanche** à 20 h');
+  assert.equal(etat.textes['regles.sectionTexte'], 'Ligne 1\nLigne 2');
+  // Une valeur identique à l'origine n'est pas stockée
+  const stockees = db.prepare('SELECT cle FROM textes').all().map((l) => l.cle).sort();
+  assert.deepEqual(stockees, ['annonce', 'nomJeu', 'regles.sectionTexte']);
+
+  // Conservé après redémarrage
+  const config = lireConfig(ENV);
+  creerApp({ db, config, maintenant: () => horloge });
+  assert.equal(config.textes.nomJeu, 'Les As de la Promo');
+
+  // Retour au texte d'origine
+  assert.equal((await admin.put('/api/admin/personnalisation', { valeurs: { nomJeu: 'Les As de Salon', annonce: '', 'regles.sectionTexte': '' } })).status, 200);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM textes').get().n, 0);
+  assert.equal((await curieux.get('/api/etat')).corps.nomJeu, 'Les As de Salon');
+});
+
 test('dates de campagne : création fermée avant et après, suppression toujours possible', async () => {
   const c = await participant('horloge');
   const { corps } = await c.post('/api/cartes', carte('Avant clôture'));

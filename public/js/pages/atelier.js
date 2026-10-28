@@ -1,16 +1,20 @@
 import {
   ATTAQUE,
+  BONUS_AVANTAGE,
   BUDGET,
   CADRAGE,
   EFFETS,
   FILIERES,
   PV,
   TEXTES,
+  avantageContre,
   calculerCout,
   coutAttaque,
   coutPv,
   degatsMaxPour,
   effet,
+  faiblesseContre,
+  filiere,
   validerCarte,
 } from '/shared/regles.js';
 import { actualiser, naviguer } from '../app.js';
@@ -20,11 +24,21 @@ import { etat, statutCampagne, utilisateur } from '../etat.js';
 import { html, monter, raw } from '../html.js';
 import { icone } from '../icones.js';
 import { preparerImage } from '../image.js';
+import { enBloc } from '../textes.js';
 import { pendant, toast } from '../ui.js';
 
 export const titre = 'Atelier de conception';
 
 const nouvelleAttaque = () => ({ nom: '', energie: 1, degats: 20, effet: 'aucun', texte: '' });
+
+// « Domine NED (+30 dégâts) · craint EGID »
+function infoCycle(id) {
+  const fort = filiere(avantageContre(id));
+  const faible = filiere(faiblesseContre(id));
+  if (!fort || !faible) return '';
+  return html`<strong>Avantage</strong> contre ${fort.nom} : +${BONUS_AVANTAGE} dégâts infligés.
+    <strong>Faiblesse</strong> face à ${faible.nom} : +${BONUS_AVANTAGE} dégâts reçus.`;
+}
 
 const signe = (n) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
 const pts = (n) => `${n} pt${Math.abs(n) > 1 ? 's' : ''}`;
@@ -191,6 +205,7 @@ function formulaire(b, libelleBouton) {
             </label>`,
           )}
         </div>
+        <p class="champ__aide info-cycle" data-info-cycle>${infoCycle(b.filiere)}</p>
       </fieldset>
       <div class="champ">
         <div class="champ__ligne">
@@ -320,7 +335,7 @@ export async function afficher(racine, id) {
         <div>
           <p class="surtitre">Atelier de conception</p>
           <h1>${id ? 'Modifier la carte' : 'Nouvelle carte'}</h1>
-          <p>Budget de ${BUDGET} points de puissance à répartir entre les points de vie et les attaques. L’aperçu se met à jour en direct.</p>
+          <div class="texte-riche">${enBloc('atelier.consignes')}</div>
         </div>
         <a class="btn btn--secondaire" href="#/hangar">${icone('retour')} Hangar</a>
       </div>
@@ -404,6 +419,7 @@ export async function afficher(racine, id) {
       return majCadrage();
     } else {
       b[name] = type === 'range' ? Number(value) : value;
+      if (name === 'filiere') monter(form.querySelector('[data-info-cycle]'), infoCycle(b.filiere));
       if (name === 'pv') form.querySelector('[data-sortie="pv"]').textContent = `${b.pv} PV · ${pts(coutPv(b.pv))}`;
     }
     majApercu();

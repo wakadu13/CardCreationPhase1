@@ -5,6 +5,7 @@ import { genererMotDePasse, IDENTIFIANT, identifiantDepuisNom, identifiantLibre,
 import { enregistrerParametres, statutCampagne } from '../config.js';
 import { transaction } from '../db.js';
 import { ErreurClient, idParam } from '../erreurs.js';
+import { enregistrerTextes, textesEffectifs, textesParDefaut } from '../textes.js';
 import { COLONNES, formaterCarte } from './cartes.js';
 
 const TAILLE_MAX_LOT = 300;
@@ -262,6 +263,17 @@ export function routesAdmin({ db, config, maintenant }) {
       )
       .run(seuil);
     res.json({ ...vueParametres(), masquees: Number(masquees) });
+  });
+
+  // --- Personnalisation des textes du site ------------------------------------------------------
+
+  r.get('/admin/personnalisation', (_req, res) => {
+    res.json({ valeurs: textesEffectifs(config), defauts: textesParDefaut(config) });
+  });
+
+  r.put('/admin/personnalisation', (req, res) => {
+    enregistrerTextes(db, config, req.body?.valeurs);
+    res.json({ valeurs: textesEffectifs(config), defauts: textesParDefaut(config) });
   });
 
   // --- Export ------------------------------------------------------------------------------------
