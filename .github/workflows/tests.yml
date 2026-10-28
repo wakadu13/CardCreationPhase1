@@ -1,0 +1,20 @@
+# Lance les tests à chaque modification poussée sur GitHub (y compris depuis l'éditeur du site github.com)
+# et sur chaque pull request. Résultat : une coche verte ou une croix rouge à côté du commit.
+# Render attend cette coche verte avant de mettre le site à jour (voir render.yaml).
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm test

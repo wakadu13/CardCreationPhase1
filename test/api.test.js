@@ -6,6 +6,7 @@ import { creerApp } from '../server/app.js';
 import { assurerAdmin, identifiantDepuisNom } from '../server/comptes.js';
 import { lireConfig } from '../server/config.js';
 import { ouvrirBase } from '../server/db.js';
+import { remplirDemo } from '../server/demo.js';
 
 const DEBUT = new Date('2026-11-02T08:00:00+01:00');
 const FIN = new Date('2026-11-09T20:00:00+01:00');
@@ -411,6 +412,30 @@ test('protection CSRF : origine étrangère et formulaire non JSON refusés', as
     body: 'identifiant=prudent&motDePasse=motdepasse1',
   });
   assert.equal(r.status, 415);
+});
+
+test('protection CSRF derrière un hébergeur : l’adresse publique annoncée par le proxy est acceptée', async () => {
+  const c = await participant('derriere-proxy');
+  const viaProxy = await c.post('/api/cartes', carte('Via le proxy'), {
+    origin: 'https://as-de-salon.onrender.com',
+    'x-forwarded-host': 'as-de-salon.onrender.com',
+  });
+  assert.equal(viaProxy.status, 201);
+});
+
+test('mode démonstration : comptes et cartes fictifs, jamais sur une base déjà remplie', async () => {
+  assert.equal(await remplirDemo(db), null);
+
+  const vide = ouvrirBase(':memory:');
+  const demo = await remplirDemo(vide, { motDePasse: 'demo-demo' });
+  assert.deepEqual(demo.identifiants, ['camille.martin', 'lea.bernard', 'hugo.roux', 'ines.moreau']);
+  assert.equal(vide.prepare('SELECT COUNT(*) AS n FROM cartes').get().n, 6);
+  assert.equal(vide.prepare('SELECT COUNT(*) AS n FROM certificats').get().n, 4);
+  assert.equal(vide.prepare(`SELECT COUNT(*) AS n FROM utilisateurs WHERE doit_changer_mdp = 1`).get().n, 0);
+  assert.equal(vide.prepare('SELECT COUNT(*) AS n FROM signalements').get().n, 1);
+  // Un second démarrage n'ajoute rien
+  assert.equal(await remplirDemo(vide), null);
+  assert.equal(vide.prepare('SELECT COUNT(*) AS n FROM cartes').get().n, 6);
 });
 
 test('supprimer son compte retire ses cartes et son certificat', async () => {

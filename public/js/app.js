@@ -129,7 +129,8 @@ function rendreBandeau() {
   }
   monter(
     document.getElementById('bandeau'),
-    html`<span class="bandeau__statut"><span class="voyant ${voyant}"></span>Phase 1 · ${texte}</span>
+    html`${etat.serveur.demo && html`<span class="badge-demo" title="Données fictives, remises à zéro à chaque mise à jour du site">Démonstration</span>`}
+      <span class="bandeau__statut"><span class="voyant ${voyant}"></span>Phase 1 · ${texte}</span>
       ${rebours && html`<span>${rebours}</span>`}
       <span class="bandeau__coords">${etat.serveur.promo || 'Salon-de-Provence'} · Faire face</span>`,
   );

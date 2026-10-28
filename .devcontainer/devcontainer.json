@@ -1,0 +1,21 @@
+// GitHub Codespaces : sur la page du dépôt, Code › Codespaces › « Create codespace on main ».
+// Le site s'installe et démarre tout seul avec des données de démonstration ;
+// l'aperçu s'ouvre dans un onglet. Les identifiants s'affichent dans le terminal.
+{
+  "name": "Les As de Salon",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "containerEnv": {
+    "DEMO": "1",
+    "DB_PATH": "data/demo.sqlite",
+    "TRUST_PROXY": "1"
+  },
+  "postCreateCommand": "npm ci",
+  "postAttachCommand": "npm run dev",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Site Les As de Salon",
+      "onAutoForward": "openPreview"
+    }
+  }
+}

@@ -133,11 +133,47 @@ Copier `.env.example` en `.env`. Toutes les valeurs sont facultatives.
 | `ADMIN_IDENTIFIANT` | Identifiant du compte organisateur créé au premier démarrage | `admin` |
 | `ADMIN_MOT_DE_PASSE` | Son mot de passe provisoire (sinon généré et affiché dans la console) | généré |
 | `PROMO`, `SEUIL_SIGNALEMENTS`, `CAMPAGNE_DEBUT`, `CAMPAGNE_FIN` | Valeurs de départ, modifiables ensuite dans Organisation › Paramètres | vide, `3`, campagne toujours ouverte |
+| `DEMO`, `DEMO_MOT_DE_PASSE` | `DEMO=1` : site de démonstration, avec des participants et des cartes fictifs créés au démarrage si la base n’a encore aucun participant. Ne jamais l’activer pour la vraie campagne | désactivé |
 | `PORT`, `DB_PATH` | Port HTTP et chemin de la base | `3000`, `data/as-de-salon.sqlite` |
 | `NODE_ENV=production` | Cookies `Secure` (HTTPS obligatoire) | — |
 | `TRUST_PROXY` | À mettre à `1` derrière un proxy HTTPS (Render, Railway, Nginx…) | désactivé |
 
-## Mise en ligne
+## Voir ses modifications sur le site
+
+Trois outils s’enchaînent pour qu’une modification faite sur GitHub soit visible en ligne.
+
+### 1. Les tests automatiques (déjà actifs)
+
+À chaque modification poussée sur GitHub, même depuis l’éditeur de github.com, les tests se lancent tout seuls (`.github/workflows/tests.yml`). Une **coche verte** ou une **croix rouge** apparaît à côté du commit et dans l’onglet **Actions**. Croix rouge : la modification casse quelque chose, et le site en ligne n’est pas mis à jour.
+
+### 2. Le site en ligne, mis à jour tout seul (Render)
+
+À faire une seule fois, environ 5 minutes :
+
+1. Créer un compte gratuit sur [render.com](https://render.com) avec « Sign in with GitHub », et autoriser l’accès au dépôt `CardCreationPhase1`.
+2. Dans Render : **New › Blueprint**, choisir le dépôt. Render lit le fichier `render.yaml`.
+3. Render demande deux mots de passe : `ADMIN_MOT_DE_PASSE` (compte organisateur) et `DEMO_MOT_DE_PASSE` (participants fictifs). Choisis-en deux de 8 caractères minimum.
+4. Cliquer sur **Apply**. Quelques minutes plus tard, le site est en ligne à une adresse du type `https://as-de-salon.onrender.com`.
+
+Ensuite, chaque modification sur la branche `main` déclenche les tests, puis, s’ils passent, la mise à jour du site en 2 à 3 minutes. Il suffit de recharger la page.
+
+Pour se connecter au site de démonstration :
+- organisateur : `admin` avec `ADMIN_MOT_DE_PASSE` ;
+- participants fictifs : `camille.martin`, `lea.bernard`, `hugo.roux` (avec des cartes) et `ines.moreau` (hangar vide), avec `DEMO_MOT_DE_PASSE`.
+
+Un badge **Démonstration** s’affiche en haut du site. Limites de l’offre gratuite : les données (comptes, cartes, textes personnalisés) repartent de zéro à chaque mise à jour, et le site s’endort après 15 minutes sans visite (la première page met alors environ une minute à s’afficher). C’est fait pour prévisualiser, pas pour la vraie campagne : voir « Mise en ligne pour la vraie campagne ».
+
+### 3. Essayer avant de publier (GitHub Codespaces)
+
+Sans autre compte que GitHub : sur la page du dépôt, **Code › Codespaces › Create codespace on …** (choisir la branche). Un éditeur s’ouvre dans le navigateur, le site s’installe et démarre avec les données de démonstration, puis s’affiche dans un onglet d’aperçu. Les identifiants s’affichent dans le terminal. Une modification faite dans cet éditeur est visible en rechargeant l’aperçu. C’est gratuit dans la limite des heures offertes chaque mois par GitHub ; penser à arrêter le Codespace après usage.
+
+### Quel outil pour quoi ?
+
+- Changer un **texte** du site : pas besoin de GitHub, utiliser **Organisation › Personnalisation** directement sur le site.
+- Changer le **code ou le design** : modifier sur GitHub (branche `main`), vérifier la coche verte, puis recharger le site Render.
+- Tester une idée **sans toucher au site en ligne** : créer une branche, ouvrir un Codespace dessus, puis faire une pull request vers `main` quand c’est prêt.
+
+## Mise en ligne pour la vraie campagne
 
 N’importe quel hébergeur Node.js convient (Render, Railway, Fly.io, un VPS…), à deux conditions :
 
@@ -145,6 +181,8 @@ N’importe quel hébergeur Node.js convient (Render, Railway, Fly.io, un VPS…
 - le site servi en **HTTPS**, avec `NODE_ENV=production` et `TRUST_PROXY=1`.
 
 Commande de démarrage : `npm start`. Le mot de passe provisoire de l’organisateur apparaît dans les journaux (logs) de l’hébergeur au premier démarrage. Le site tourne sur une seule instance (les limites anti-abus sont gardées en mémoire).
+
+Avec Render, la marche à suivre est notée en commentaire dans `render.yaml` : passer à une offre payante avec disque permanent, enlever `DEMO` et placer `DB_PATH` sur le disque. Garder ensuite un site de démonstration séparé pour essayer les modifications sans toucher aux vraies données.
 
 ## Organisation du code
 
@@ -158,11 +196,15 @@ server/        API Express + SQLite (node:sqlite)
   comptes.js     création des comptes, mots de passe provisoires, compte organisateur
   textes.js      textes personnalisés enregistrés en base
   compte-admin.js  commande de secours npm run compte-admin
+  demo.js        données fictives du site de démonstration (DEMO=1)
   routes/        connexion et certificat, cartes et signalements, organisation
 public/        Site (HTML, CSS et JavaScript sans étape de build)
   css/carte.css  design des cartes
   js/pages/      une page par écran (admin.js = espace organisateurs)
 test/          Tests (node --test)
+render.yaml    mise en ligne automatique sur Render
+.github/       tests automatiques sur GitHub (Actions)
+.devcontainer/ configuration GitHub Codespaces
 ```
 
 ## Sécurité et vie privée

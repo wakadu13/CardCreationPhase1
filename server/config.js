@@ -32,6 +32,9 @@ export function lireConfig(env = process.env) {
     seuilSignalements: entier(env.SEUIL_SIGNALEMENTS, 3),
     adminIdentifiant: env.ADMIN_IDENTIFIANT || 'admin',
     adminMotDePasse: env.ADMIN_MOT_DE_PASSE || undefined,
+    // Site de démonstration : données fictives au premier démarrage (jamais sur une base déjà remplie)
+    demo: env.DEMO === '1' || env.DEMO === 'true',
+    demoMotDePasse: env.DEMO_MOT_DE_PASSE || undefined,
     cookieSecurise: env.COOKIE_SECURE ? env.COOKIE_SECURE === '1' : env.NODE_ENV === 'production',
     trustProxy: proxy(env.TRUST_PROXY),
   };

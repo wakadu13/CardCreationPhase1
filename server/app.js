@@ -45,8 +45,11 @@ function origineMemeSite(req, res, next) {
     try {
       hote = new URL(origine).host;
     } catch {}
-    // req.host tient compte de X-Forwarded-Host quand TRUST_PROXY est réglé.
-    if (hote !== req.host) return res.status(403).json({ erreur: 'Origine refusée.' });
+    // Derrière un hébergeur (Render, Codespaces…), l'adresse publique peut arriver dans Host ou
+    // dans X-Forwarded-Host. Un site tiers ne peut fixer ni l'un ni l'autre depuis le navigateur
+    // sans déclencher une vérification CORS que ce serveur refuse.
+    const hotesAcceptes = [req.host, req.get('host'), req.get('x-forwarded-host')].filter(Boolean);
+    if (!hotesAcceptes.includes(hote)) return res.status(403).json({ erreur: 'Origine refusée.' });
   }
   if (req.headers['content-length'] && req.headers['content-length'] !== '0' && !req.is('application/json')) {
     return res.status(415).json({ erreur: 'Requête JSON attendue.' });
@@ -89,6 +92,7 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
         fin: config.campagneFin?.toISOString() ?? null,
         statut: statutCampagne(config, maintenant()),
       },
+      demo: config.demo,
       limiteCartes: LIMITE_CARTES,
       seuilSignalements: config.seuilSignalements,
       versionCertificat: VERSION_CERTIFICAT,

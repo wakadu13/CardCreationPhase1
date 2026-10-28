@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { Router } from 'express';
 import { CLAUSES, VERSION_CERTIFICAT } from '../../shared/certificat.js';
 import {
@@ -12,6 +11,7 @@ import {
   limiteur,
   verifierMotDePasse,
 } from '../auth.js';
+import { numeroCertificat } from '../comptes.js';
 import { ErreurClient } from '../erreurs.js';
 
 export function controlerMotDePasse(mdp) {
@@ -132,12 +132,7 @@ export function routesCompte({ db, config, maintenant }) {
     const coches = new Set(Array.isArray(accords) ? accords : []);
     if (!CLAUSES.every((c) => coches.has(c.id))) throw new ErreurClient('Coche toutes les clauses pour signer.');
     const signeLe = maintenant().toISOString();
-    const numero = createHash('sha256')
-      .update(`${req.utilisateur.id}|${VERSION_CERTIFICAT}|${nom}|${signeLe}`)
-      .digest('hex')
-      .slice(0, 12)
-      .toUpperCase()
-      .replace(/(.{4})(?=.)/g, '$1-');
+    const numero = numeroCertificat(req.utilisateur.id, VERSION_CERTIFICAT, nom, signeLe);
     db.prepare(
       `INSERT INTO certificats (utilisateur_id, nom_complet, version, numero, signe_le) VALUES (?, ?, ?, ?, ?)
        ON CONFLICT (utilisateur_id) DO UPDATE SET nom_complet = excluded.nom_complet, version = excluded.version,

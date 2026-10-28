@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { createHash, randomInt } from 'node:crypto';
 import { hacherMotDePasse } from './auth.js';
 
 // Mot de passe provisoire lisible à l'oral ou sur papier (sans 0/O, 1/l/I) : « k7mp-3qxt-9r ».
@@ -10,6 +10,16 @@ export function genererMotDePasse() {
 }
 
 export const IDENTIFIANT = /^[A-Za-z0-9._-]{3,24}$/;
+
+// Numéro lisible d'un certificat signé : « 7F3A-9C21-B04E ».
+export function numeroCertificat(utilisateurId, version, nom, signeLe) {
+  return createHash('sha256')
+    .update(`${utilisateurId}|${version}|${nom}|${signeLe}`)
+    .digest('hex')
+    .slice(0, 12)
+    .toUpperCase()
+    .replace(/(.{4})(?=.)/g, '$1-');
+}
 
 // « Camille Le Gall » → « camille.le.gall »
 export function identifiantDepuisNom(nomComplet) {

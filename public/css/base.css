@@ -1023,3 +1023,13 @@ dialog::backdrop {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Site de démonstration (variable DEMO=1) */
+.badge-demo {
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  background: var(--alerte);
+  color: var(--encre);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
