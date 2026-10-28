@@ -1,0 +1,24 @@
+{
+  "name": "les-as-de-salon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Les As de Salon — jeu de cartes de cohésion. Phase 1 : campagne de création de cartes.",
+  "type": "module",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
+    "test": "node --disable-warning=ExperimentalWarning --test",
+    "compte-admin": "node --disable-warning=ExperimentalWarning server/compte-admin.js"
+  },
+  "dependencies": {
+    "@fontsource/barlow": "5.2.8",
+    "@fontsource/barlow-condensed": "5.2.8",
+    "@fontsource/saira-stencil-one": "5.2.8",
+    "@fontsource/share-tech-mono": "5.2.7",
+    "express": "5.2.1"
+  }
+}
