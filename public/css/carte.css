@@ -1,0 +1,605 @@
+/* ==========================================================================
+   Carte à jouer — style « carte de jeu vidéo » façon Balatro
+   Face crème, bord épais à la couleur de la filière, ombre portée dure,
+   typo pixel pour le nom et les chiffres, jetons de poker pour l'énergie.
+   Toutes les tailles sont en em : la carte se met à l'échelle avec --w.
+   ========================================================================== */
+
+.carte {
+  --w: 300px;
+  --c: #2b74c8;
+  --c-clair: color-mix(in srgb, var(--c) 35%, #ffffff);
+  --c-fonce: color-mix(in srgb, var(--c) 65%, #000000);
+  position: relative;
+  flex-shrink: 0;
+  width: var(--w);
+  aspect-ratio: 63 / 88;
+  font-size: calc(var(--w) / 21);
+  line-height: 1.2;
+  padding: 0.38em;
+  border-radius: 0.9em;
+  color: var(--encre);
+  background: var(--c);
+  border: 0.14em solid #141b1e;
+  box-shadow:
+    0.3em 0.3em 0 rgba(0, 0, 0, 0.45),
+    inset 0 0 0 0.1em color-mix(in srgb, var(--c) 60%, #ffffff);
+  transform-style: preserve-3d;
+  transition: transform 0.25s ease-out, box-shadow 0.25s;
+  -webkit-user-select: none;
+  user-select: none;
+  text-align: left;
+}
+
+/* Reflet qui suit la souris */
+.carte::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--hx, 50%) var(--hy, 50%), rgba(255, 255, 255, 0.4), transparent 45%);
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.carte.est-inclinee::after {
+  opacity: 1;
+}
+
+.carte__corps {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  padding: 0.4em 0.45em;
+  border-radius: 0.55em;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.025) 0 0.2em, transparent 0.2em 0.6em),
+    #f6f1e3;
+  box-shadow: inset 0 0 0 0.08em rgba(20, 27, 30, 0.6);
+}
+
+/* --- En-tête : bandeau couleur, nom, PV, emblème ---------------------------- */
+
+.carte__tete {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 0.3em;
+  align-items: end;
+  margin: -0.4em -0.45em 0;
+  padding: 0.35em 0.5em 0.3em;
+  background: linear-gradient(180deg, var(--c-clair), var(--c));
+  border-bottom: 0.1em solid #141b1e;
+  color: #fff;
+}
+
+.carte__sous-titre {
+  grid-column: 1;
+  font-family: var(--police-titre);
+  font-weight: 500;
+  font-size: 0.62em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.92;
+  min-height: 1.2em;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.carte__nom {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0;
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: 1.22em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  text-shadow: 0.08em 0.08em 0 rgba(0, 0, 0, 0.5);
+}
+
+.carte__nom--long {
+  font-size: 1em;
+}
+
+.carte__pv {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: end;
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: 1.3em;
+  line-height: 1;
+  color: #fff;
+  background: var(--rouge-cocarde);
+  padding: 0.1em 0.3em 0.15em;
+  border-radius: 0.25em;
+  border: 0.07em solid #141b1e;
+  box-shadow: 0.1em 0.1em 0 rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+
+.carte__pv small {
+  font-size: 0.5em;
+  margin-right: 0.15em;
+  vertical-align: 0.3em;
+}
+
+.carte__embleme {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  width: 1.85em;
+  height: 1.85em;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f6f1e3;
+  border: 0.1em solid #141b1e;
+  box-shadow: 0.1em 0.1em 0 rgba(0, 0, 0, 0.35);
+  color: var(--c-fonce);
+}
+
+.carte__embleme svg {
+  width: 1.15em;
+  height: 1.15em;
+}
+
+/* --- Illustration ------------------------------------------------------------ */
+
+.carte__visuel {
+  position: relative;
+  flex: 0 0 auto;
+  height: 10.6em;
+  margin-top: 0.1em;
+  border-radius: 0.35em;
+  overflow: hidden;
+  background: #0c1a33;
+  border: 0.1em solid #141b1e;
+  box-shadow: 0.12em 0.12em 0 rgba(0, 0, 0, 0.3);
+}
+
+.carte__visuel img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carte__numero {
+  position: absolute;
+  top: 0.4em;
+  right: 0.5em;
+  padding: 0.05em 0.35em;
+  font-family: var(--police-titre);
+  font-size: 0.55em;
+  color: #fff;
+  background: rgba(20, 27, 30, 0.75);
+  border-radius: 0.3em;
+  z-index: 1;
+}
+
+/* Illustration par défaut : ciel et fumées tricolores */
+.carte__ciel {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(120% 90% at 50% 120%, color-mix(in srgb, var(--c) 55%, #0c1a33) 0%, transparent 70%),
+    linear-gradient(180deg, #071226 0%, #12305e 100%);
+}
+
+.carte__ciel svg {
+  width: 100%;
+  height: 100%;
+}
+
+.carte__ciel-texte {
+  position: absolute;
+  bottom: 0.7em;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--police-titre);
+  font-size: 0.55em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* --- Galon : filière ---------------------------------------------------------- */
+
+.carte__galon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  margin: 0.05em 0.3em 0;
+  padding: 0.18em 0.6em;
+  border-radius: 0.3em;
+  background: var(--or);
+  border: 0.07em solid #141b1e;
+  box-shadow: 0.1em 0.1em 0 rgba(0, 0, 0, 0.3);
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: 0.62em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #3b2a0a;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.carte__galon > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.carte__domaine {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.carte__galon::before,
+.carte__galon::after {
+  content: '';
+  flex-shrink: 0;
+  width: 1.1em;
+  height: 0.55em;
+  background: linear-gradient(90deg, var(--bleu-cocarde) 0 33%, #fff 33% 66%, var(--rouge-cocarde) 66%);
+  border-radius: 0.1em;
+  box-shadow: 0 0 0 0.05em rgba(0, 0, 0, 0.35);
+}
+
+/* --- Attaques ------------------------------------------------------------------- */
+
+.carte__carnet {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  padding: 0.3em 0.45em 0.3em;
+  border-radius: 0.35em;
+  background: #fffdf7;
+  border: 0.07em solid rgba(20, 27, 30, 0.5);
+  overflow: hidden;
+}
+
+.attaque {
+  padding: 0.12em 0;
+}
+
+.attaque + .attaque {
+  border-top: 0.06em dashed rgba(20, 27, 30, 0.3);
+  padding-top: 0.25em;
+}
+
+.attaque__ligne {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.attaque__cout {
+  display: flex;
+  gap: 0.1em;
+  flex-shrink: 0;
+  min-width: 2.3em;
+}
+
+/* Jeton de poker */
+.jeton {
+  width: 0.95em;
+  height: 0.95em;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 24%, var(--rouge-cocarde) 26% 100%);
+  box-shadow:
+    inset 0 0 0 0.09em #fff,
+    inset 0 0 0 0.16em var(--bleu-cocarde),
+    0 0 0 0.06em #141b1e,
+    0.06em 0.06em 0 0.06em rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.attaque__nom {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: 0.95em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attaque__degats {
+  flex-shrink: 0;
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: 1.1em;
+  line-height: 1;
+  color: #fff;
+  background: var(--bleu-cocarde);
+  padding: 0.08em 0.3em 0.12em;
+  border-radius: 0.25em;
+  border: 0.06em solid #141b1e;
+}
+
+.attaque__degats:empty {
+  display: none;
+}
+
+.attaque__texte {
+  margin: 0.08em 0 0;
+  font-size: 0.58em;
+  line-height: 1.28;
+  color: #2a3346;
+}
+
+.attaque__texte strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+.attaque__texte em {
+  color: #4b5568;
+}
+
+.carte__description {
+  margin-top: auto;
+  padding-top: 0.25em;
+  border-top: 0.06em dashed rgba(20, 27, 30, 0.3);
+  font-size: 0.56em;
+  line-height: 1.3;
+  font-style: italic;
+  color: #3d475b;
+}
+
+/* --- Avantage / faiblesse ------------------------------------------------------ */
+
+.carte__tactique {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25em;
+  font-family: var(--police-titre);
+  font-size: 0.56em;
+  line-height: 1;
+  color: #1a2233;
+}
+
+.carte__tactique-cote {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.3em 0.5em;
+  border-radius: 0.35em;
+  background: #fffdf7;
+  border: 0.08em solid rgba(20, 27, 30, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.carte__tactique-lib {
+  font-weight: 500;
+  text-transform: uppercase;
+  color: #4b5568;
+  margin-right: auto;
+}
+
+.carte__type {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  background: var(--t);
+  color: #fff;
+  box-shadow: 0 0 0 0.1em #141b1e;
+  flex-shrink: 0;
+}
+
+.carte__type svg {
+  width: 1em;
+  height: 1em;
+}
+
+.carte__tactique b {
+  font-weight: 700;
+}
+
+.carte__bonus {
+  font-weight: 700;
+  color: #1e7a4f;
+}
+
+.carte__bonus--subi {
+  color: #b3141f;
+}
+
+/* --- Pied --------------------------------------------------------------------- */
+
+.carte__pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  margin: 0 -0.45em -0.4em;
+  padding: 0.3em 0.6em 0.35em;
+  background: #141b1e;
+  font-family: var(--police-titre);
+  font-size: 0.55em;
+  color: var(--or-clair);
+  white-space: nowrap;
+}
+
+.carte__auteur {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.carte__marque {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-shrink: 0;
+}
+
+.carte__marque .jeton {
+  width: 1.3em;
+  height: 1.3em;
+}
+
+/* --- États ---------------------------------------------------------------- */
+
+.carte--masquee .carte__corps {
+  filter: grayscale(0.9) brightness(0.7);
+}
+
+.carte__voile {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  gap: 0.4em;
+  text-align: center;
+  border-radius: inherit;
+  background: repeating-linear-gradient(-45deg, rgba(10, 16, 28, 0.55) 0 0.6em, rgba(10, 16, 28, 0.7) 0.6em 1.2em);
+  color: #fff;
+}
+
+.carte__voile strong {
+  display: inline-block;
+  padding: 0.25em 0.8em;
+  font-family: var(--police-pochoir);
+  font-size: 1.2em;
+  color: #ffd3d6;
+  border: 0.12em solid currentColor;
+  transform: rotate(-8deg);
+}
+
+.carte__voile span {
+  font-size: 0.6em;
+}
+
+/* Carte cliquable (galerie) : léger flottement au survol */
+.carte-bouton {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 0.95em;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.carte-bouton:focus-visible {
+  outline: 3px solid var(--or-clair);
+  outline-offset: 4px;
+}
+
+.carte-bouton:hover .carte {
+  box-shadow:
+    0.5em 0.6em 0 rgba(0, 0, 0, 0.45),
+    inset 0 0 0 0.1em color-mix(in srgb, var(--c) 60%, #ffffff),
+    0 0 1.4em color-mix(in srgb, var(--c) 50%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carte {
+    transform: none !important;
+  }
+}
+
+/* --- Dos de carte ------------------------------------------------------------ */
+
+.carte--dos {
+  --c: #1c3a2e;
+  background: #13261f;
+}
+
+.carte-dos {
+  display: grid;
+  place-items: center;
+  padding: 0.5em;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0 0.35em, transparent 0.35em 0.9em),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.06) 0 0.35em, transparent 0.35em 0.9em),
+    radial-gradient(circle at 50% 45%, #2f6a50, #1c3a2e 70%);
+}
+
+.carte-dos__cadre {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1em 0.6em;
+  border: 0.16em solid var(--or);
+  border-radius: 0.5em;
+  box-shadow: inset 0 0 0 0.35em #13261f, inset 0 0 0 0.45em var(--or);
+}
+
+.carte-dos__titre,
+.carte-dos__promo {
+  font-family: var(--police-titre);
+  font-weight: 700;
+  color: var(--or-clair);
+  text-shadow: 0.08em 0.08em 0 #000;
+  text-align: center;
+}
+
+.carte-dos__titre {
+  font-size: 1.25em;
+  text-transform: uppercase;
+}
+
+.carte-dos__promo {
+  font-size: 0.7em;
+}
+
+.carte-dos__cocarde {
+  width: 7em;
+  height: 7em;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--rouge-cocarde) 0 30%, #fff 32% 62%, var(--bleu-cocarde) 64% 100%);
+  border: 0.2em solid var(--or);
+  box-shadow: 0 0 0 0.14em #13261f, 0 0.4em 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Retournement 3D (galerie) */
+.retournable {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+
+.retournable.est-retournee {
+  transform: rotateY(180deg);
+}
+
+.retournable__face,
+.retournable__dos {
+  backface-visibility: hidden;
+}
+
+.retournable__dos {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+
+.detail-carte__visuel {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+}

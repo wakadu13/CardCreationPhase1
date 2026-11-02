@@ -1,0 +1,1112 @@
+/* ==========================================================================
+   Les As de Salon — styles du site
+   Inspiration : table de jeu façon Balatro (tapis sombre, écran CRT, typo
+   pixel, boutons épais et colorés, jetons de poker) aux couleurs de l'École
+   de l'air et de l'espace de Salon-de-Provence (cocarde, or).
+   ========================================================================== */
+
+:root {
+  --nuit-0: #13261f;
+  --nuit-1: #1c3a2e;
+  --nuit-2: #2d3b42;
+  --nuit-3: #3e525b;
+  --tapis: #2a5a45;
+  --ligne: rgba(255, 255, 255, 0.12);
+  --ligne-forte: rgba(255, 255, 255, 0.28);
+  --texte: #f6f1e4;
+  --texte-2: #cfd7d9;
+  --texte-3: #93a4a8;
+  --or: #f5b53f;
+  --or-clair: #ffd96a;
+  --or-sombre: #a8741c;
+  --bleu-cocarde: #2b8de1;
+  --bleu-sombre: #1a5fa0;
+  --rouge-cocarde: #fe5f55;
+  --rouge-sombre: #b8372f;
+  --blanc-cocarde: #ffffff;
+  --papier: #f6f1e3;
+  --encre: #1f2328;
+  --succes: #3fbf7f;
+  --alerte: #f5a623;
+  --danger: #fe5f55;
+  --rayon: 12px;
+  --contour: #141b1e;
+  --police-texte: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --police-titre: 'Pixelify Sans', 'Barlow Condensed', system-ui, sans-serif;
+  --police-pochoir: 'Pixelify Sans', 'Barlow Condensed', system-ui, sans-serif;
+  --police-mono: 'Share Tech Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--police-texte);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--texte);
+  background-color: var(--nuit-0);
+  background-image:
+    radial-gradient(ellipse at 50% 35%, rgba(70, 140, 108, 0.55), transparent 62%),
+    radial-gradient(ellipse at 50% 120%, rgba(0, 0, 0, 0.55), transparent 60%),
+    linear-gradient(180deg, var(--tapis) 0%, var(--nuit-1) 60%, var(--nuit-0) 100%);
+  background-attachment: fixed;
+}
+
+/* Grain du tapis et lignes de balayage façon écran CRT */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1.5px);
+  background-size:
+    100% 3px,
+    7px 7px;
+  mix-blend-mode: multiply;
+  opacity: 0.8;
+}
+
+/* Vignette sombre dans les coins */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--or-clair);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: #fff;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--police-titre);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  margin: 0 0 0.5em;
+  text-wrap: balance;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+h1 {
+  font-size: clamp(2rem, 4.2vw, 3rem);
+  text-transform: uppercase;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.2rem;
+}
+
+p {
+  margin: 0 0 1em;
+  text-wrap: pretty;
+}
+
+:focus-visible {
+  outline: 3px solid var(--or-clair);
+  outline-offset: 2px;
+}
+
+main:focus {
+  outline: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.lien-evitement {
+  position: absolute;
+  left: 1rem;
+  top: -100px;
+  z-index: 100;
+  background: var(--or);
+  color: var(--encre);
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+}
+
+.lien-evitement:focus {
+  top: 0.5rem;
+}
+
+/* --- Étiquettes ------------------------------------------------------------- */
+
+.surtitre {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0 0 0.6rem;
+  font-family: var(--police-titre);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--or);
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.surtitre::before {
+  content: '';
+  width: 0.9em;
+  height: 0.9em;
+  border-radius: 50%;
+  background: var(--rouge-cocarde);
+  box-shadow: inset 0 0 0 0.22em #fff, inset 0 0 0 0.32em var(--bleu-cocarde), 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.mono {
+  font-family: var(--police-mono);
+  letter-spacing: 0.04em;
+}
+
+.discret {
+  color: var(--texte-2);
+}
+
+.petit {
+  font-size: 0.875rem;
+}
+
+/* --- En-tête ------------------------------------------------------------ */
+
+.entete {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(20, 27, 30, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 3px solid var(--contour);
+}
+
+/* Liseré tricolore */
+.entete::after {
+  content: '';
+  display: block;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--bleu-cocarde) 0 33.3%,
+    var(--blanc-cocarde) 33.3% 66.6%,
+    var(--rouge-cocarde) 66.6% 100%
+  );
+}
+
+.entete__barre {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.marque {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--texte);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.marque svg {
+  width: 66px;
+  height: auto;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.5));
+}
+
+.marque__nom {
+  font-family: var(--police-pochoir);
+  font-weight: 700;
+  font-size: 1.35rem;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+.marque__sous {
+  display: block;
+  font-family: var(--police-titre);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--or);
+  margin-top: 0.2rem;
+}
+
+/* Logos de l'école (téléversés) ou emblèmes de remplacement */
+.logos-ecole {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.logos-ecole--entete {
+  margin-left: 0.5rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--ligne-forte);
+}
+
+.logo-ecole {
+  height: 40px;
+  width: auto;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.5));
+}
+
+.logos-ecole--accueil .logo-ecole {
+  height: 64px;
+}
+
+.logos-ecole--document .logo-ecole {
+  height: 48px;
+}
+
+.logo-remplacement {
+  display: inline-grid;
+  gap: 0.05rem;
+  padding: 0.3rem 0.6rem;
+  border: 2px solid var(--or);
+  border-radius: 6px;
+  color: var(--or-clair);
+  background: rgba(0, 0, 0, 0.25);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.logo-remplacement b {
+  font-family: var(--police-titre);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.logo-remplacement small {
+  font-size: 0.62rem;
+  color: var(--texte-2);
+}
+
+.logos-ecole--document .logo-remplacement {
+  color: var(--or-sombre);
+  border-color: var(--or-sombre);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.logos-ecole--document .logo-remplacement small {
+  color: #5a6478;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.nav a,
+.nav button.nav__lien {
+  font-family: var(--police-titre);
+  font-weight: 600;
+  font-size: 1rem;
+  white-space: nowrap;
+  color: var(--texte-2);
+  text-decoration: none;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  position: relative;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.nav a:hover,
+.nav button.nav__lien:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.nav a[aria-current='page'] {
+  color: var(--encre);
+  background: var(--or);
+  text-shadow: none;
+  box-shadow: 0 3px 0 var(--or-sombre);
+}
+
+.nav__badge {
+  display: inline-block;
+  margin-left: 0.3em;
+  padding: 0 0.45em;
+  border-radius: 999px;
+  font-family: var(--police-titre);
+  font-size: 0.8rem;
+  background: var(--bleu-cocarde);
+  color: #fff;
+  text-shadow: none;
+}
+
+.nav a[aria-current='page'] .nav__badge {
+  background: var(--encre);
+  color: var(--or-clair);
+}
+
+.entete .nav__menu {
+  display: none;
+  margin-left: auto;
+}
+
+/* Bandeau d'état de la campagne */
+.bandeau {
+  border-top: 1px solid var(--ligne);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.bandeau__contenu {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0.3rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  font-family: var(--police-titre);
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
+  color: var(--texte-2);
+}
+
+.bandeau__statut {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  color: var(--texte);
+}
+
+.voyant {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--succes);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4), 0 0 8px var(--succes);
+  animation: clignote 2s ease-in-out infinite;
+}
+
+.voyant--attente {
+  background: var(--alerte);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4), 0 0 8px var(--alerte);
+}
+
+.voyant--arret {
+  background: var(--danger);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4), 0 0 8px var(--danger);
+  animation: none;
+}
+
+@keyframes clignote {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.bandeau__coords {
+  margin-left: auto;
+  color: var(--texte-3);
+}
+
+/* --- Mise en page --------------------------------------------------------- */
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.pied {
+  border-top: 3px solid var(--contour);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--texte-3);
+  font-size: 0.85rem;
+}
+
+.pied__contenu {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.pied a {
+  color: var(--texte-2);
+}
+
+.entete-page {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+}
+
+.entete-page h1 {
+  margin: 0;
+}
+
+.entete-page p {
+  margin: 0.5rem 0 0;
+  max-width: 62ch;
+  color: var(--texte-2);
+}
+
+.pile {
+  display: grid;
+  gap: 1rem;
+}
+
+.pile > * {
+  min-width: 0;
+}
+
+/* --- Panneaux : tuiles sombres à coins ronds et contour épais ------------ */
+
+.panneau {
+  position: relative;
+  background: var(--nuit-2);
+  border: 3px solid var(--contour);
+  border-radius: var(--rayon);
+  padding: 1.25rem;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.07);
+}
+
+.panneau--hud {
+  background: linear-gradient(180deg, #34464f, var(--nuit-2));
+  border-color: var(--or);
+  box-shadow: 0 6px 0 var(--or-sombre), inset 0 2px 0 rgba(255, 255, 255, 0.1);
+}
+
+.panneau h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.9rem;
+}
+
+.panneau__titre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.panneau__titre h2 {
+  margin: 0;
+}
+
+/* --- Boutons : gros, ronds, en relief ---------------------------------------- */
+
+.btn {
+  --fond: var(--or);
+  --ombre: var(--or-sombre);
+  --encre-btn: var(--encre);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: 46px;
+  padding: 0.5rem 1.3rem 0.6rem;
+  border: 3px solid var(--contour);
+  border-radius: 12px;
+  font-family: var(--police-titre);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: var(--encre-btn);
+  background: var(--fond);
+  box-shadow: 0 5px 0 var(--ombre), 0 5px 0 3px var(--contour);
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+  color: var(--encre-btn);
+}
+
+.btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--ombre), 0 1px 0 3px var(--contour);
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  filter: grayscale(0.8) brightness(0.7);
+  cursor: not-allowed;
+}
+
+.btn svg {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.btn--secondaire {
+  --fond: var(--bleu-cocarde);
+  --ombre: var(--bleu-sombre);
+  --encre-btn: #fff;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.btn--secondaire:hover {
+  color: #fff;
+}
+
+.btn--danger {
+  --fond: var(--rouge-cocarde);
+  --ombre: var(--rouge-sombre);
+  --encre-btn: #fff;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.btn--danger:hover {
+  color: #fff;
+}
+
+.btn--petit {
+  min-height: 36px;
+  padding: 0.25rem 0.85rem 0.35rem;
+  font-size: 0.95rem;
+  border-width: 2px;
+  border-radius: 9px;
+  box-shadow: 0 3px 0 var(--ombre), 0 3px 0 2px var(--contour);
+}
+
+.btn--petit:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ombre), 0 1px 0 2px var(--contour);
+}
+
+.btn--bloc {
+  width: 100%;
+}
+
+.groupe-boutons {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* --- Formulaires ---------------------------------------------------------- */
+
+.champ {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.champ > label,
+.champ > .champ__libelle,
+fieldset > legend {
+  font-family: var(--police-titre);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--texte-2);
+}
+
+.champ__aide {
+  font-size: 0.82rem;
+  color: var(--texte-3);
+}
+
+.champ__ligne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.compteur {
+  font-family: var(--police-mono);
+  font-size: 0.75rem;
+  color: var(--texte-3);
+}
+
+.compteur--plein {
+  color: var(--alerte);
+}
+
+input[type='text'],
+input[type='password'],
+input[type='search'],
+input[type='number'],
+input[type='datetime-local'],
+select,
+textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.8rem;
+  font: inherit;
+  color: var(--texte);
+  background: #1a2328;
+  border: 2px solid var(--contour);
+  border-radius: 9px;
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.35);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--texte-3);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--or);
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 0 3px rgba(245, 181, 63, 0.3);
+}
+
+select {
+  appearance: none;
+  padding-right: 2.2rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--or) 50%), linear-gradient(135deg, var(--or) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+select option {
+  background: var(--nuit-2);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+fieldset {
+  border: 0;
+  margin: 0 0 1rem;
+  padding: 0;
+  min-width: 0;
+}
+
+fieldset > legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--or);
+  height: 28px;
+}
+
+.case {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.case input {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0.15rem 0 0;
+  accent-color: var(--or);
+}
+
+.erreur-formulaire {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 2px solid var(--danger);
+  background: rgba(254, 95, 85, 0.15);
+  border-radius: 9px;
+  color: #ffd5d8;
+  font-size: 0.92rem;
+}
+
+.erreur-formulaire:empty {
+  display: none;
+}
+
+/* Contrôle segmenté */
+.segments {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 10px;
+  background: #1a2328;
+  border: 2px solid var(--contour);
+}
+
+.segments label {
+  position: relative;
+}
+
+.segments input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+
+.segments span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 36px;
+  padding: 0.3rem 0.75rem;
+  border-radius: 7px;
+  font-family: var(--police-titre);
+  font-weight: 600;
+  color: var(--texte-2);
+}
+
+.segments input:checked + span {
+  background: var(--or);
+  color: var(--encre);
+  box-shadow: 0 2px 0 var(--or-sombre);
+}
+
+.segments input:focus-visible + span {
+  outline: 2px solid var(--or-clair);
+  outline-offset: 1px;
+}
+
+.onglets {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.25rem;
+  border-bottom: 3px solid var(--contour);
+}
+
+.onglets button {
+  flex: 1;
+  padding: 0.7rem 0.5rem;
+  font-family: var(--police-titre);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--texte-3);
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -3px;
+  cursor: pointer;
+}
+
+.onglets button[aria-selected='true'] {
+  color: var(--or-clair);
+  border-bottom-color: var(--or);
+}
+
+/* --- Puces, badges --------------------------------------------------------- */
+
+.puce {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-family: var(--police-titre);
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--contour);
+  color: var(--texte-2);
+}
+
+.puce--or {
+  color: var(--encre);
+  background: var(--or);
+}
+
+.puce--danger {
+  color: #fff;
+  background: var(--danger);
+}
+
+.pastille-filiere {
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 0 2px var(--contour);
+}
+
+/* --- Notifications et dialogues ---------------------------------------- */
+
+.toasts {
+  position: fixed;
+  z-index: 60;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.5rem;
+  max-width: min(420px, calc(100vw - 2rem));
+}
+
+.toast {
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  background: var(--nuit-2);
+  border: 3px solid var(--contour);
+  border-left: 8px solid var(--succes);
+  font-family: var(--police-titre);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.4);
+  animation: entree 0.25s ease-out;
+}
+
+.toast--erreur {
+  border-left-color: var(--danger);
+}
+
+@keyframes entree {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+dialog {
+  width: min(560px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  color: var(--texte);
+  background: var(--nuit-2);
+  border: 3px solid var(--contour);
+  border-radius: 16px;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.4), 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+dialog.dialogue--large {
+  width: min(900px, calc(100vw - 2rem));
+}
+
+dialog::backdrop {
+  background: rgba(5, 12, 10, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.dialogue__entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 3px solid var(--contour);
+}
+
+.dialogue__entete h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.dialogue__corps {
+  padding: 1.25rem;
+}
+
+.dialogue__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.bouton-fermer {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--contour);
+  border-radius: 9px;
+  background: var(--rouge-cocarde);
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.3rem;
+  line-height: 1;
+  box-shadow: 0 3px 0 var(--rouge-sombre);
+}
+
+.bouton-fermer:hover {
+  filter: brightness(1.1);
+}
+
+/* --- États ---------------------------------------------------------------- */
+
+.chargement {
+  display: grid;
+  place-items: center;
+  gap: 1rem;
+  padding: 5rem 1rem;
+  color: var(--texte-3);
+  font-family: var(--police-titre);
+  font-size: 1rem;
+}
+
+.radar-chargement {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--rouge-cocarde) 0 27%, #fff 29% 57%, var(--bleu-cocarde) 59% 100%);
+  border: 3px solid var(--contour);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.4);
+  animation: pivote 1.2s ease-in-out infinite;
+}
+
+@keyframes pivote {
+  50% {
+    transform: rotateY(180deg);
+  }
+}
+
+.vide {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--texte-2);
+  border: 3px dashed var(--ligne-forte);
+  border-radius: var(--rayon);
+}
+
+.badge-demo {
+  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+  background: var(--alerte);
+  color: var(--encre);
+  font-weight: 700;
+  border: 2px solid var(--contour);
+}
+
+/* --- Responsive ------------------------------------------------------------ */
+
+@media (max-width: 1280px) {
+  .logos-ecole--entete .logo-remplacement--large {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .logos-ecole--entete {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .entete .nav__menu {
+    display: inline-flex;
+  }
+
+  .nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.5rem 1rem 1rem;
+    background: rgba(20, 27, 30, 0.98);
+    border-bottom: 3px solid var(--contour);
+  }
+
+  .nav.est-ouverte {
+    display: flex;
+  }
+
+  .nav a,
+  .nav button.nav__lien {
+    padding: 0.75rem 0.7rem;
+    text-align: left;
+  }
+
+  .bandeau__coords {
+    display: none;
+  }
+
+  .bandeau__contenu {
+    row-gap: 0.15rem;
+  }
+
+  .logos-ecole--entete {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .marque__nom {
+    font-size: 1.1rem;
+  }
+
+  .marque svg {
+    width: 54px;
+  }
+
+  main {
+    padding-top: 1.25rem;
+  }
+
+  .panneau {
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

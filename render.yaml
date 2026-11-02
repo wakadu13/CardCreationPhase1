@@ -1,0 +1,47 @@
+# Mise en ligne automatique sur Render (https://render.com), à partir de ce dépôt GitHub.
+# Une fois branché (Render › New › Blueprint), le site se met à jour tout seul à chaque
+# modification de la branche main, dès que les tests GitHub sont au vert.
+#
+# Réglage actuel : SITE DE DÉMONSTRATION, offre gratuite.
+#   - données fictives créées au démarrage (DEMO=1) ;
+#   - l'offre gratuite n'a pas de disque permanent : comptes et cartes repartent de zéro
+#     à chaque mise à jour du site. Parfait pour voir ses modifications, pas pour la vraie campagne.
+#   - le site s'endort après 15 minutes sans visite : la première page met alors ~1 minute à s'afficher.
+#
+# Pour la vraie campagne, voir le bloc « VRAIE CAMPAGNE » plus bas.
+
+services:
+  - type: web
+    name: as-de-salon
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/etat
+    # Mise à jour automatique à chaque commit sur main, une fois les tests GitHub passés
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DEMO
+        value: "1"
+      # Demandés par Render à la création (jamais écrits dans le dépôt, qui est public)
+      - key: ADMIN_MOT_DE_PASSE
+        sync: false
+      - key: DEMO_MOT_DE_PASSE
+        sync: false
+
+    # VRAIE CAMPAGNE : passer à une offre payante avec disque permanent, enlever DEMO,
+    # et ranger la base sur le disque. Remplacer plan: free par :
+    #   plan: starter
+    #   disk:
+    #     name: donnees
+    #     mountPath: /var/data
+    #     sizeGB: 1
+    # puis, dans envVars, supprimer DEMO et ajouter :
+    #   - key: DB_PATH
+    #     value: /var/data/as-de-salon.sqlite

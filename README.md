@@ -1,0 +1,250 @@
+# Les As de Salon · Phase 1
+
+Site de la **campagne de création** du jeu de cartes de cohésion. Les organisateurs créent un compte pour chaque personne choisie. Tout le monde signe le certificat de consentement et découvre les cartes dans la galerie ; une petite équipe d’**éditeurs de cartes**, désignée par l’organisation, conçoit les cartes dans un atelier avec aperçu en direct. Les cartes serviront au jeu de la phase 2.
+
+Design façon **Balatro** (tapis de jeu, écran CRT, typo pixel, boutons en relief, jetons de poker) aux couleurs de l’École de l’air et de l’espace de Salon-de-Provence : cocarde tricolore et or. Les logos officiels (EMA, École de l’air et de l’espace) s’ajoutent depuis le site, par les organisateurs qui en ont l’autorisation. Projet étudiant non officiel.
+
+| Accueil | Atelier des éditeurs |
+| --- | --- |
+| ![Accueil](docs/apercus/accueil.jpg) | ![Atelier](docs/apercus/atelier.jpg) |
+| **Galerie** | **Organisation : comptes et rôles** |
+| ![Galerie](docs/apercus/galerie.jpg) | ![Comptes](docs/apercus/organisation-comptes.jpg) |
+| **Simulateur de combat (duel)** | **Relecture d’une carte** |
+| ![Simulateur](docs/apercus/simulateur.jpg) | ![Relecture](docs/apercus/relecture.jpg) |
+
+## Ce que fait le site
+
+**Trois rôles**
+- **Participant** : se connecte, signe le certificat, découvre les cartes dans la galerie et peut signaler.
+- **Éditeur de cartes** : participant qui conçoit aussi les cartes dans l’atelier (sans limite, ou avec la limite fixée dans Paramètres).
+- **Organisateur** : gère les comptes, les rôles, les signalements, les paramètres et les textes ; peut aussi concevoir des cartes une fois son certificat signé.
+
+**Pour les participants**
+- **Pas d’inscription libre** : on se connecte avec les identifiants donnés par les organisateurs, puis on choisit son propre mot de passe à la première connexion.
+- **Certificat de consentement obligatoire** avant de créer ou de voir la moindre carte : six engagements à cocher, au nom enregistré par les organisateurs. Le certificat est numéroté et imprimable.
+- **Registre des signataires** : la liste des personnes qu’on a le droit de mettre en scène sur une carte.
+- **Atelier** (éditeurs) : nom, sous-titre, filière, PV, illustration (recadrage à la souris ou au doigt directement sur l’aperçu, zoom à la molette ou au pincement), 1 ou 2 attaques, description. Aperçu en direct, jauge de puissance et « check-list prévol ». Le **brouillon** est sauvegardé dans le navigateur : si l’onglet se ferme, la carte en cours est proposée au retour. Une carte existante se **duplique** pour en faire une variante.
+- **Relecture avant publication** (activée par défaut, réglable dans Paramètres) : une carte nouvelle ou modifiée n’est visible que des éditeurs, marquée « À relire », jusqu’à ce qu’un **autre** éditeur (ou un organisateur) la valide depuis la galerie.
+- **Galerie** avec filtres par filière, recherche, tri, et un bouton **Signaler** sur chaque carte. Chaque carte se retourne (dos aux couleurs du jeu) et se télécharge en **image PNG** haute définition, pour imprimer un vrai paquet.
+- **Hangar** : ses propres cartes, compte à rebours de la campagne, statistiques par filière.
+- **Retrait du consentement** : supprimer son compte efface ses cartes, ses signalements et son certificat.
+
+**Pour les organisateurs** (menu Organisation)
+- **Comptes** : création d’un ou plusieurs comptes en collant une liste de noms (« Prénom Nom », un par ligne), avec le rôle choisi ; le rôle de chacun se change ensuite dans la liste. L’identifiant est généré automatiquement (camille.martin) et chaque compte reçoit un mot de passe provisoire. On peut ensuite copier les identifiants, les télécharger en CSV ou **imprimer des fiches à découper et distribuer**. La liste des comptes montre qui s’est connecté, qui a signé et combien de cartes chacun a créées. Elle permet aussi de corriger un nom, de donner un nouveau mot de passe (en cas d’oubli) ou de supprimer un compte. On peut aussi créer d’autres comptes organisateurs.
+- **Signalements** : les cartes signalées, avec le motif, le commentaire et l’auteur de chaque signalement. Actions possibles : masquer, réafficher, classer les signalements, supprimer.
+- **Cartes** : toutes les cartes, avec filtres par filière et par statut, et les mêmes actions.
+- **Paramètres** : dates d’ouverture et de clôture de la campagne (bouton « ouvrir maintenant pour 7 jours »), seuil de masquage automatique, limite de cartes, relecture, nom de la promo. Plus la **sauvegarde** et l’**export JSON** des cartes pour la phase 2.
+- **Cartes** : toutes les cartes, et un bouton **ZIP** qui exporte toutes les cartes publiées en PNG haute définition (face et dos), pour les faire imprimer d’un coup.
+- **Journal** : historique des actions (comptes créés, rôles, mots de passe, cartes masquées, rétablies, supprimées, validées, paramètres, textes, logos, sauvegardes), si une décision est contestée.
+- **Rappel de sauvegarde** : un bandeau en haut de l’espace organisateurs quand la dernière sauvegarde téléchargée date de plus de 24 h.
+- **Personnalisation** : les textes du site, modifiables sans toucher au code (voir plus bas), et les **logos** (EMA, École de l’air et de l’espace) à téléverser.
+
+## Filières
+
+Les filières jouent le rôle des types Pokémon. Chacune donne sa couleur et son emblème à la carte :
+
+| Filière | Domaine | Couleur |
+| --- | --- | --- |
+| **TESA** | Sciences techniques | orange, emblème engrenage |
+| **NED** | Sciences numériques | violet, emblème puce électronique |
+| **EGID** | Sciences sociales | vert, emblème groupe de personnes |
+
+### Cycle des forces : TESA > NED > EGID > TESA
+
+Comme à pierre-feuille-ciseaux, chaque filière en domine une autre. Une attaque portée contre la filière qu’on domine inflige **+30 dégâts**. Chaque carte affiche en bas son **avantage** (la filière qu’elle domine) et sa **faiblesse** (celle qui la domine).
+
+| Filière | Avantage contre | Faiblesse face à |
+| --- | --- | --- |
+| TESA | NED | EGID |
+| NED | EGID | TESA |
+| EGID | TESA | NED |
+
+La page Règles montre le cycle en schéma, avec une phrase humoristique pour chaque avantage (modifiable dans Personnalisation). Le calcul pour la phase 2 est prêt : `degatsInfliges(degats, filiereAttaquant, filiereDefenseur)` dans `shared/regles.js`, où se règlent aussi l’ordre du cycle (`CYCLE`) et le bonus (`BONUS_AVANTAGE`).
+
+## Équilibrage
+
+Chaque carte a un **budget de 100 points de puissance** :
+- PV de 30 à 150, par paliers de 10 : coût = PV ÷ 2 ;
+- attaque : coût = dégâts ÷ 2, moins 5 par énergie après la première, plus le coût de l’effet (5 minimum) ;
+- dégâts plafonnés à 40 par énergie (120 au maximum) ;
+- effets choisis dans une liste fixe (Soin, Paralysie, Brouillage…), pour que le jeu puisse les appliquer. Les handicaps (Contrecoup, Épuisement) rendent 10 points. Le texte libre de l’attaque sert à l’humour.
+
+Le navigateur et le serveur appliquent les mêmes règles (`shared/regles.js`), donc personne ne peut contourner le budget.
+
+## Phase 2 : proposition de système de combat
+
+Décrite sur la page **Combat** du site (`#/combat`) et dans `shared/combat.js`, pour être ajustée avant d’être programmée. En résumé, façon Balatro :
+
+- chaque joueur draft un **paquet de 20 cartes** parmi celles de la promo ;
+- à chaque manche, il joue des **mains** de 1 à 5 cartes (4 mains et 3 défausses par manche) pour dépasser une **mise** (score cible) ;
+- **score = jetons × multiplicateur** : les jetons viennent des dégâts des attaques jouées (+1 par tranche de 10 PV), le multiplicateur des **combinaisons** (Binôme +2, Escadrille +4, Promo +5, Chaîne de commandement +7, Escadron +10) ;
+- chaque mise a une **filière** : les cartes qui la dominent frappent à +30, celles qu’elle domine à −10 ;
+- les **effets** des cartes deviennent des actions de main (récupérer une main, doubler le multiplicateur sur pile ou face…) ;
+- six mises par partie, dont deux **boss** avec une règle spéciale ; en duel, le premier à passer la mise gagne la manche.
+
+Un **simulateur** est jouable sur le site (`#/combat/jouer`, bouton « Essayer le simulateur ») : mode **solo** contre la mise, ou **duel à deux sur le même écran** (à tour de rôle sur la même mise, premier à 3 manches). Il applique ces règles avec les cartes de la promo (ou les cartes d’exemple sans connexion). Petits sons désactivables. Le déroulé est dans `shared/partie.js`, le calcul d’une main dans `shared/combat.js`, tous deux testés.
+
+**Régler les cibles** : `npm run equilibrage` (cartes d’exemple) ou `npm run equilibrage -- data/as-de-salon.sqlite` (vraies cartes) simule des milliers de parties d’un joueur automatique et propose des cibles pour viser ~60 % de parties gagnées. Les valeurs par défaut ont été calibrées sur les cartes d’exemple : à relancer avec les cartes de la promo avant la phase 2, puis à reporter dans `shared/combat.js`.
+
+Les pages **Règles** et **Combat** ont un bouton « Imprimer (A4) » pour la table de jeu.
+
+## Signalements
+
+- Un signalement par personne et par carte, avec un motif. Il est anonyme pour l’auteur de la carte et visible des organisateurs.
+- Au bout de **3 signalements** (réglable), la carte est masquée automatiquement. Seul son auteur la voit encore, avec les motifs, et peut la supprimer pour en créer une autre. Une carte masquée ne peut plus être modifiée.
+- Les organisateurs traitent ensuite les signalements dans l’onglet du même nom : masquer une carte même sous le seuil, la réafficher en classant les signalements (les mêmes personnes ne pourront pas la re-signaler), ou la supprimer.
+
+## Personnaliser le site sans toucher au code
+
+Dans **Organisation › Personnalisation**, les organisateurs modifient les textes vus par les participants :
+
+- **Partout** : nom du jeu, sous-titre du logo, **annonce** affichée en haut de toutes les pages (« Clôture dimanche à 20 h ! »), pied de page ;
+- **Accueil** : présentation, les trois étapes, message sous la connexion, description des phases ;
+- **Pages des participants** : message des organisateurs en haut du hangar, consignes de l’atelier, introduction de la galerie et du certificat ;
+- **Règles** : introduction, phrases du cycle des filières, et une **section libre** (calendrier, lots à gagner…).
+
+Chaque texte a un aperçu en direct et un bouton « Texte d’origine ». Un texte vide ne s’affiche pas. Mise en forme possible : `**gras**`, `*italique*`, `[lien](https://…)`, listes avec `- `. Des variables restent à jour toutes seules : `{nomJeu}`, `{promo}`, `{limiteCartes}`, `{seuil}`, `{budget}`. Le HTML saisi n’est jamais interprété (pas de risque d’injecter du code).
+
+Le design, les règles du jeu et les engagements du certificat ne se modifient pas depuis le site : changer un engagement obligerait tout le monde à signer à nouveau. La liste des textes modifiables est dans `shared/textes.js` : pour en ajouter un, il suffit d’y déclarer une entrée et de l’afficher dans la page voulue.
+
+## Lancer le site
+
+Il faut **Node.js 22.13 ou plus récent** (la base SQLite est intégrée à Node, rien d’autre à installer).
+
+```bash
+npm install
+```
+
+```bash
+npm start
+```
+
+Le site tourne alors sur http://localhost:3000.
+
+### Premier démarrage : le compte organisateur
+
+Au tout premier démarrage, le serveur crée le compte organisateur et affiche son mot de passe provisoire dans la console :
+
+```
+   ┌──────────────────────────────────────────┐
+   │  Compte organisateur créé                │
+   │  Identifiant : admin                     │
+   │  Mot de passe provisoire : k7mp-3qxt-9r  │
+   │  À changer à la première connexion.      │
+   └──────────────────────────────────────────┘
+```
+
+Connecte-toi avec ces identifiants, choisis ton mot de passe, puis crée les comptes des participants dans **Organisation › Comptes**.
+
+Si le mot de passe organisateur est perdu, cette commande en génère un nouveau (et crée le compte s’il n’existe plus) :
+
+```bash
+npm run compte-admin
+```
+
+Si tu veux aussi jouer, crée-toi un compte participant séparé : le compte organisateur ne conçoit pas de cartes.
+
+### Sauvegarde et tests
+
+La base de données est un seul fichier, `data/as-de-salon.sqlite`. Trois protections :
+- **Organisation › Paramètres › Télécharger la sauvegarde** : copie complète de la base (comptes, cartes et images, textes, logos) à mettre à l’abri régulièrement. Sur un hébergement sans disque permanent, c’est la seule protection.
+- Une **copie quotidienne** est écrite automatiquement dans `data/sauvegardes/` (7 jours conservés), sauf en mode démonstration.
+- Pour **restaurer** : serveur arrêté, remplacer le fichier de la base par la copie, puis redémarrer. Rechargement automatique pendant le développement : `npm run dev`. Tests : `npm test`.
+
+## Configuration (`.env`)
+
+Copier `.env.example` en `.env`. Toutes les valeurs sont facultatives.
+
+| Variable | Rôle | Par défaut |
+| --- | --- | --- |
+| `NOM_JEU` | Nom affiché par défaut (modifiable ensuite dans Organisation › Personnalisation) | `Les As de Salon` |
+| `ADMIN_IDENTIFIANT` | Identifiant du compte organisateur créé au premier démarrage | `admin` |
+| `ADMIN_MOT_DE_PASSE` | Son mot de passe provisoire (sinon généré et affiché dans la console) | généré |
+| `PROMO`, `SEUIL_SIGNALEMENTS`, `CAMPAGNE_DEBUT`, `CAMPAGNE_FIN` | Valeurs de départ, modifiables ensuite dans Organisation › Paramètres | vide, `3`, campagne toujours ouverte |
+| `LIMITE_CARTES` | Cartes maximum par éditeur au départ (0 = sans limite), modifiable dans Paramètres | `0` |
+| `DEMO`, `DEMO_MOT_DE_PASSE` | `DEMO=1` : site de démonstration, avec des participants et des cartes fictifs créés au démarrage si la base n’a encore aucun participant. Ne jamais l’activer pour la vraie campagne | désactivé |
+| `PORT`, `DB_PATH` | Port HTTP et chemin de la base | `3000`, `data/as-de-salon.sqlite` |
+| `NODE_ENV=production` | Cookies `Secure` (HTTPS obligatoire) | — |
+| `TRUST_PROXY` | À mettre à `1` derrière un proxy HTTPS (Render, Railway, Nginx…) | désactivé |
+
+## Voir ses modifications sur le site
+
+Trois outils s’enchaînent pour qu’une modification faite sur GitHub soit visible en ligne.
+
+### 1. Les tests automatiques (déjà actifs)
+
+À chaque modification poussée sur GitHub, même depuis l’éditeur de github.com, les tests se lancent tout seuls (`.github/workflows/tests.yml`). Une **coche verte** ou une **croix rouge** apparaît à côté du commit et dans l’onglet **Actions**. Croix rouge : la modification casse quelque chose, et le site en ligne n’est pas mis à jour.
+
+### 2. Le site en ligne, mis à jour tout seul (Render)
+
+À faire une seule fois, environ 5 minutes :
+
+1. Créer un compte gratuit sur [render.com](https://render.com) avec « Sign in with GitHub », et autoriser l’accès au dépôt `CardCreationPhase1`.
+2. Dans Render : **New › Blueprint**, choisir le dépôt. Render lit le fichier `render.yaml`.
+3. Render demande deux mots de passe : `ADMIN_MOT_DE_PASSE` (compte organisateur) et `DEMO_MOT_DE_PASSE` (participants fictifs). Choisis-en deux de 8 caractères minimum.
+4. Cliquer sur **Apply**. Quelques minutes plus tard, le site est en ligne à une adresse du type `https://as-de-salon.onrender.com`.
+
+Ensuite, chaque modification sur la branche `main` déclenche les tests, puis, s’ils passent, la mise à jour du site en 2 à 3 minutes. Il suffit de recharger la page.
+
+Pour se connecter au site de démonstration :
+- organisateur : `admin` avec `ADMIN_MOT_DE_PASSE` ;
+- comptes fictifs, avec `DEMO_MOT_DE_PASSE` : éditeurs `camille.martin`, `lea.bernard` (avec des cartes) et `ines.moreau` (sans carte) ; participants `hugo.roux` et `theo.garnier`.
+
+Un badge **Démonstration** s’affiche en haut du site. Limites de l’offre gratuite : les données (comptes, cartes, textes personnalisés) repartent de zéro à chaque mise à jour, et le site s’endort après 15 minutes sans visite (la première page met alors environ une minute à s’afficher). C’est fait pour prévisualiser, pas pour la vraie campagne : voir « Mise en ligne pour la vraie campagne ».
+
+### 3. Essayer avant de publier (GitHub Codespaces)
+
+Sans autre compte que GitHub : sur la page du dépôt, **Code › Codespaces › Create codespace on …** (choisir la branche). Un éditeur s’ouvre dans le navigateur, le site s’installe et démarre avec les données de démonstration, puis s’affiche dans un onglet d’aperçu. Les identifiants s’affichent dans le terminal. Une modification faite dans cet éditeur est visible en rechargeant l’aperçu. C’est gratuit dans la limite des heures offertes chaque mois par GitHub ; penser à arrêter le Codespace après usage.
+
+### Quel outil pour quoi ?
+
+- Changer un **texte** du site : pas besoin de GitHub, utiliser **Organisation › Personnalisation** directement sur le site.
+- Changer le **code ou le design** : modifier sur GitHub (branche `main`), vérifier la coche verte, puis recharger le site Render.
+- Tester une idée **sans toucher au site en ligne** : créer une branche, ouvrir un Codespace dessus, puis faire une pull request vers `main` quand c’est prêt.
+
+## Mise en ligne pour la vraie campagne
+
+N’importe quel hébergeur Node.js convient (Render, Railway, Fly.io, un VPS…), à deux conditions :
+
+- un **disque persistant** pour le fichier SQLite (sinon les comptes et les cartes disparaissent à chaque redéploiement) : pointer `DB_PATH` dessus ;
+- le site servi en **HTTPS**, avec `NODE_ENV=production` et `TRUST_PROXY=1`.
+
+Commande de démarrage : `npm start`. Le mot de passe provisoire de l’organisateur apparaît dans les journaux (logs) de l’hébergeur au premier démarrage. Le site tourne sur une seule instance (les limites anti-abus sont gardées en mémoire).
+
+Avec Render, la marche à suivre est notée en commentaire dans `render.yaml` : passer à une offre payante avec disque permanent, enlever `DEMO` et placer `DB_PATH` sur le disque. Garder ensuite un site de démonstration séparé pour essayer les modifications sans toucher aux vraies données.
+
+## Organisation du code
+
+```
+shared/        Règles partagées navigateur + serveur
+  regles.js      budget, filières et cycle, effets, validation d'une carte
+  combat.js      proposition de système de combat (phase 2) et calcul d'une main
+  partie.js      déroulé d'une partie (simulateur, joueur automatique)
+scripts/       equilibrage.js : calibrage des cibles par simulation
+  textes.js      textes personnalisables et leurs valeurs d'origine
+  certificat.js  texte et version du certificat de consentement
+  exemples.js    cartes d'exemple (accueil, règles)
+server/        API Express + SQLite (node:sqlite)
+  comptes.js     création des comptes, mots de passe provisoires, compte organisateur
+  sauvegarde.js  copies de la base (téléchargement et copie quotidienne)
+  textes.js      textes personnalisés enregistrés en base
+  compte-admin.js  commande de secours npm run compte-admin
+  demo.js        données fictives du site de démonstration (DEMO=1)
+  routes/        connexion et certificat, cartes et signalements, organisation, logos
+public/        Site (HTML, CSS et JavaScript sans étape de build)
+  css/carte.css  design des cartes
+  js/pages/      une page par écran (admin.js = espace organisateurs, jeu.js = simulateur)
+test/          Tests (node --test)
+render.yaml    mise en ligne automatique sur Render
+.github/       tests automatiques sur GitHub (Actions)
+.devcontainer/ configuration GitHub Codespaces
+```
+
+## Sécurité et vie privée
+
+- Comptes créés uniquement par les organisateurs ; mot de passe provisoire obligatoirement remplacé à la première connexion.
+- Mots de passe hachés avec scrypt ; les mots de passe provisoires ne sont affichés qu’une fois. Une réinitialisation déconnecte la personne de tous ses appareils.
+- Sessions en cookie `HttpOnly` et `SameSite=Lax`. Écritures acceptées seulement en JSON et depuis le site lui-même (protection CSRF). En-têtes de sécurité stricts (CSP sans script externe) et polices hébergées sur le site.
+- Les cartes et le registre ne sont visibles qu’après connexion et signature du certificat.
+- Les images sont réduites (900 px) et réencodées dans le navigateur avant l’envoi, ce qui retire leurs métadonnées (position GPS…). Le serveur vérifie le format et la taille (1,5 Mo max).
+- Limites anti-abus larges par adresse IP (toute une promo peut partager le même Wi-Fi), et limite des échecs de connexion par compte.
