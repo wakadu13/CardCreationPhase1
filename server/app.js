@@ -106,7 +106,9 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
   api.use(routesCartes(ctx));
   api.use(routesAdmin(ctx));
   api.use(routesLogos(ctx));
-  api.use((_req, res) => res.status(404).json({ erreur: 'Route inconnue.' }));
+  api.use((_req, res) =>
+    res.status(404).json({ erreur: 'Route inconnue. Si le site vient d’être mis à jour, recharge la page (Ctrl + F5).' }),
+  );
   api.use(gestionnaireErreurs);
 
   app.use('/api', api);
@@ -120,6 +122,14 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
   app.use('/lib/html-to-image', express.static(join(RACINE, 'node_modules', 'html-to-image', 'dist'), { maxAge: '30d', immutable: true }));
   app.use('/shared', express.static(join(RACINE, 'shared'), { maxAge: 0 }));
   app.use(express.static(join(RACINE, 'public'), { maxAge: 0 }));
+
+  // Adresse tapée sans le « #/ » (par exemple /admin ou /galerie) : on renvoie vers la page du site
+  // correspondante au lieu d'une erreur 404. Les fichiers (avec extension) ne sont pas concernés.
+  app.get(/^\/(?!api\/|polices\/|shared\/|lib\/)([^.]*)$/, (req, res) => {
+    const chemin = req.params[0].replace(/\/+$/, '');
+    if (!chemin) return res.redirect('/');
+    res.redirect(`/#/${chemin}`);
+  });
 
   return app;
 }

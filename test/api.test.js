@@ -417,6 +417,15 @@ test('relecture : une carte n’est publiée qu’après validation par un autre
   assert.equal((await lecteur.get('/api/admin/journal')).status, 403);
 });
 
+test('une adresse tapée sans « #/ » renvoie vers la page du site', async () => {
+  const r = await fetch(`${base}/admin/journal`, { redirect: 'manual' });
+  assert.equal(r.status, 302);
+  assert.equal(r.headers.get('location'), '/#/admin/journal');
+  assert.equal((await fetch(`${base}/galerie/`, { redirect: 'manual' })).headers.get('location'), '/#/galerie');
+  assert.equal((await fetch(`${base}/inexistant.png`)).status, 404);
+  assert.equal((await fetch(`${base}/api/inconnue`)).status, 404);
+});
+
 test('le dernier organisateur ne peut pas supprimer son compte, et le compte admin n’est créé qu’une fois', async () => {
   assert.equal((await admin.del('/api/moi', { motDePasse: 'admin-definitif' })).status, 409);
   const deuxieme = await assurerAdmin(db, { identifiant: 'autre-admin' });
