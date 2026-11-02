@@ -2239,3 +2239,245 @@ code {
     flex-basis: 100%;
   }
 }
+
+/* ==========================================================================
+   Style Balatro : titre, logos, rôles, page Combat
+   ========================================================================== */
+
+.titre-pochoir {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: var(--texte);
+  font-weight: 700;
+  text-shadow:
+    0.06em 0.06em 0 var(--rouge-cocarde),
+    0.12em 0.12em 0 var(--contour);
+}
+
+.etapes__num {
+  border: 2px solid var(--contour);
+  box-shadow: 0 3px 0 var(--or-sombre);
+  font-family: var(--police-titre);
+}
+
+.phase {
+  border: 3px solid var(--contour);
+  background: var(--nuit-2);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+}
+
+.phase h3 {
+  text-transform: none;
+}
+
+.logos-ecole--accueil {
+  margin: -0.5rem 0 1.25rem;
+  gap: 1rem;
+}
+
+.logos-ecole--document {
+  margin-left: auto;
+  align-self: center;
+}
+
+.grille-logos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.logo-slot {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 2px solid var(--contour);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.logo-slot__apercu {
+  display: grid;
+  place-items: center;
+  min-height: 110px;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background:
+    repeating-conic-gradient(rgba(255, 255, 255, 0.08) 0 25%, transparent 0 50%) 0 0 / 16px 16px,
+    #3a4a52;
+}
+
+.logo-slot__apercu img {
+  max-height: 96px;
+  width: auto;
+}
+
+.select-role {
+  min-height: 36px;
+  padding: 0.25rem 2rem 0.3rem 0.6rem;
+  font-family: var(--police-titre);
+  font-size: 0.92rem;
+  border-width: 2px;
+  box-shadow: none;
+}
+
+.select-role--editeur {
+  border-color: var(--bleu-cocarde);
+}
+
+.select-role--admin {
+  border-color: var(--or);
+}
+
+/* Page Combat */
+.formule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+.formule__bloc {
+  flex: 1 1 200px;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: 3px solid var(--contour);
+  color: #fff;
+  font-size: 0.92rem;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35);
+}
+
+.formule__bloc small {
+  font-family: var(--police-titre);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.formule__bloc--jetons {
+  background: var(--bleu-cocarde);
+}
+
+.formule__bloc--mult {
+  background: var(--rouge-cocarde);
+}
+
+.formule__bloc--score {
+  background: var(--or);
+  color: var(--encre);
+  text-shadow: none;
+}
+
+.formule__x {
+  align-self: center;
+  font-family: var(--police-titre);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--texte);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.fiche--combat dd {
+  display: block;
+}
+
+.mises {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mise {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 9px;
+  border: 2px solid var(--contour);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.mise--boss {
+  border-color: var(--rouge-cocarde);
+  background: rgba(254, 95, 85, 0.14);
+}
+
+.mise__ante {
+  font-size: 0.75rem;
+  color: var(--texte-3);
+}
+
+.mise__cible {
+  font-family: var(--police-titre);
+  font-size: 1.2rem;
+  color: var(--or-clair);
+}
+
+.mise__regle {
+  grid-column: 2 / -1;
+  font-size: 0.85rem;
+  color: var(--texte-2);
+}
+
+.main-exemple {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.mini-carte {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 180px;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  border: 3px solid var(--contour);
+  border-top: 0.6rem solid var(--c);
+  background: var(--papier);
+  color: var(--encre);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+}
+
+.mini-carte__filiere {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--police-titre);
+  font-size: 0.8rem;
+  color: var(--c);
+}
+
+.mini-carte__filiere svg {
+  width: 14px;
+  height: 14px;
+}
+
+.mini-carte strong {
+  font-family: var(--police-titre);
+}
+
+.mini-carte__chiffres {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--police-mono);
+  font-size: 0.85rem;
+  color: #3d475b;
+}
+
+.calcul {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.calcul li:last-child {
+  color: var(--or-clair);
+  font-weight: 700;
+}

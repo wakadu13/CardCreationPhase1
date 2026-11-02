@@ -1,5 +1,5 @@
 import { EXEMPLES } from '/shared/exemples.js';
-import { ATTAQUE, BONUS_AVANTAGE, BUDGET, CYCLE, EFFETS, FILIERES, LIMITE_CARTES, PV, avantageContre, calculerCout, filiere } from '/shared/regles.js';
+import { ATTAQUE, BONUS_AVANTAGE, BUDGET, CYCLE, EFFETS, FILIERES, PV, avantageContre, calculerCout, filiere } from '/shared/regles.js';
 import { rendreCarte, rendreInclinable } from '../carte.js';
 import { etat } from '../etat.js';
 import { html, monter, raw } from '../html.js';
@@ -76,12 +76,12 @@ export function afficher(racine) {
               <li>
                 <span class="mono">Phase 1 · 1 semaine</span>
                 <strong>Campagne de création</strong>
-                <p>Chaque participant signe le certificat de consentement, puis conçoit au plus ${LIMITE_CARTES} cartes. Modification et suppression libres jusqu’à la clôture.</p>
+                <p>Chacun signe le certificat de consentement. Une petite équipe d’<strong>éditeurs de cartes</strong>, choisie par l’organisation, conçoit les cartes de la promo dans l’atelier. Tout le monde les découvre dans la galerie et peut signaler une carte qui va trop loin.</p>
               </li>
               <li>
                 <span class="mono">Phase 2 · 2 semaines</span>
                 <strong>Le jeu</strong>
-                <p>Les cartes de la phase 1 s’affrontent. Le jeu se joue en plusieurs manches ; des fenêtres d’ajout de cartes sont fixées à l’avance (${LIMITE_CARTES} cartes maximum par personne et par fenêtre).</p>
+                <p>Les cartes de la phase 1 s’affrontent en manches, façon Balatro : on joue une main de cartes, on compte les jetons et le multiplicateur. Des fenêtres d’ajout de cartes sont fixées à l’avance. <a href="#/combat">Voir la proposition de système de combat</a>.</p>
               </li>
             </ol>
           </section>

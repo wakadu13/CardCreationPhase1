@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
   hash TEXT NOT NULL,
   -- Nom saisi par les organisateurs à la création du compte
   nom_complet TEXT NOT NULL DEFAULT '',
-  role TEXT NOT NULL DEFAULT 'participant' CHECK (role IN ('participant', 'admin')),
+  -- participant : voit et signale · editeur : conçoit aussi les cartes · admin : organisation
+  role TEXT NOT NULL DEFAULT 'participant' CHECK (role IN ('participant', 'editeur', 'admin')),
   -- 1 tant que la personne n'a pas remplacé son mot de passe provisoire
   doit_changer_mdp INTEGER NOT NULL DEFAULT 1,
   derniere_connexion TEXT,
@@ -76,6 +77,14 @@ CREATE TABLE IF NOT EXISTS textes (
   cle TEXT PRIMARY KEY,
   valeur TEXT NOT NULL
 );
+
+-- Logos téléversés par les organisateurs (ema, ecole)
+CREATE TABLE IF NOT EXISTS logos (
+  cle TEXT PRIMARY KEY,
+  image BLOB NOT NULL,
+  image_type TEXT NOT NULL,
+  modifie_le TEXT NOT NULL
+);
 `;
 
 // Ajoute les colonnes apparues après la première version à une base existante.
@@ -92,6 +101,36 @@ function migrer(db) {
   }
   const colonnesCartes = new Set(db.prepare('PRAGMA table_info(cartes)').all().map((c) => c.name));
   if (!colonnesCartes.has('masquee_par')) db.exec('ALTER TABLE cartes ADD COLUMN masquee_par TEXT');
+
+  // Le rôle « editeur » n'existait pas : la contrainte de la table doit être refaite (SQLite ne
+  // modifie pas une contrainte en place). Les données sont recopiées telles quelles.
+  const definition = db.prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'utilisateurs'`).get()?.sql ?? '';
+  if (definition.includes("('participant', 'admin')")) {
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.exec('BEGIN');
+    try {
+      db.exec(`CREATE TABLE utilisateurs_v2 (
+        id INTEGER PRIMARY KEY,
+        identifiant TEXT NOT NULL UNIQUE COLLATE NOCASE,
+        hash TEXT NOT NULL,
+        nom_complet TEXT NOT NULL DEFAULT '',
+        role TEXT NOT NULL DEFAULT 'participant' CHECK (role IN ('participant', 'editeur', 'admin')),
+        doit_changer_mdp INTEGER NOT NULL DEFAULT 1,
+        derniere_connexion TEXT,
+        cree_le TEXT NOT NULL
+      )`);
+      db.exec(`INSERT INTO utilisateurs_v2 (id, identifiant, hash, nom_complet, role, doit_changer_mdp, derniere_connexion, cree_le)
+        SELECT id, identifiant, hash, nom_complet, role, doit_changer_mdp, derniere_connexion, cree_le FROM utilisateurs`);
+      db.exec('DROP TABLE utilisateurs');
+      db.exec('ALTER TABLE utilisateurs_v2 RENAME TO utilisateurs');
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON');
+    }
+  }
 }
 
 export function ouvrirBase(chemin) {

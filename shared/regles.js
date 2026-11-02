@@ -2,8 +2,6 @@
 // Ce fichier est chargé à la fois par le navigateur (aperçu en direct) et par
 // le serveur (validation finale) : une seule source de vérité pour l'équilibrage.
 
-export const LIMITE_CARTES = 5;
-
 // Chaque carte dispose d'un budget de puissance à répartir entre ses PV et ses attaques.
 export const BUDGET = 100;
 

@@ -302,11 +302,11 @@ export async function afficher(racine, id) {
     };
   } else {
     const { cartes, limite } = await api('/cartes/miennes');
-    if (cartes.length >= limite) {
+    if (limite > 0 && cartes.length >= limite) {
       monter(
         racine,
         html`<div class="vide"><h2>Hangar complet</h2>
-          <p>Tu as déjà ${limite} cartes, le maximum pour cette phase. Supprime une carte pour en concevoir une autre.</p>
+          <p>Tu as déjà ${limite} cartes, le maximum fixé par l’organisation. Supprime une carte pour en concevoir une autre.</p>
           <a class="btn btn--secondaire" href="#/hangar">Retour au hangar</a></div>`,
       );
       return;

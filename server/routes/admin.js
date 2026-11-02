@@ -9,6 +9,7 @@ import { enregistrerTextes, textesEffectifs, textesParDefaut } from '../textes.j
 import { COLONNES, formaterCarte } from './cartes.js';
 
 const TAILLE_MAX_LOT = 300;
+const ROLES = ['participant', 'editeur', 'admin'];
 
 const nettoyerNom = (v) =>
   String(v ?? '')
@@ -33,9 +34,10 @@ export function routesAdmin({ db, config, maintenant }) {
   r.get('/admin/resume', (_req, res) => {
     const un = (sql) => db.prepare(sql).get().n;
     res.json({
-      comptes: un(`SELECT COUNT(*) AS n FROM utilisateurs WHERE role = 'participant'`),
+      comptes: un(`SELECT COUNT(*) AS n FROM utilisateurs WHERE role != 'admin'`),
+      editeurs: un(`SELECT COUNT(*) AS n FROM utilisateurs WHERE role = 'editeur'`),
       organisateurs: un(`SELECT COUNT(*) AS n FROM utilisateurs WHERE role = 'admin'`),
-      enAttente: un(`SELECT COUNT(*) AS n FROM utilisateurs WHERE role = 'participant' AND doit_changer_mdp = 1`),
+      enAttente: un(`SELECT COUNT(*) AS n FROM utilisateurs WHERE role != 'admin' AND doit_changer_mdp = 1`),
       certificats: db.prepare('SELECT COUNT(*) AS n FROM certificats WHERE version = ?').get(VERSION_CERTIFICAT).n,
       cartes: un('SELECT COUNT(*) AS n FROM cartes'),
       masquees: un(`SELECT COUNT(*) AS n FROM cartes WHERE statut = 'masquee'`),
@@ -79,7 +81,7 @@ export function routesAdmin({ db, config, maintenant }) {
   // Les mots de passe provisoires ne sont renvoyés qu'une fois, ici.
   r.post('/admin/comptes', async (req, res) => {
     const { comptes, role = 'participant' } = req.body ?? {};
-    if (!['participant', 'admin'].includes(role)) throw new ErreurClient('Rôle inconnu.');
+    if (!ROLES.includes(role)) throw new ErreurClient('Rôle inconnu.');
     if (!Array.isArray(comptes) || comptes.length === 0) throw new ErreurClient('Ajoute au moins une personne.');
     if (comptes.length > TAILLE_MAX_LOT) throw new ErreurClient(`${TAILLE_MAX_LOT} comptes maximum à la fois.`);
 
@@ -145,6 +147,16 @@ export function routesAdmin({ db, config, maintenant }) {
     if (homonyme && homonyme.id !== compte.id) throw new ErreurClient(`Un compte existe déjà pour « ${nom} » (@${homonyme.identifiant}).`, 409);
     db.prepare('UPDATE utilisateurs SET nom_complet = ? WHERE id = ?').run(nom, compte.id);
     db.prepare('UPDATE certificats SET nom_complet = ? WHERE utilisateur_id = ?').run(nom, compte.id);
+    res.json({ ok: true });
+  });
+
+  // Changer le rôle : participant ↔ éditeur de cartes ↔ organisateur.
+  r.patch('/admin/comptes/:id/role', (req, res) => {
+    const compte = compteCible(req);
+    const role = req.body?.role;
+    if (!ROLES.includes(role)) throw new ErreurClient('Rôle inconnu.');
+    if (compte.id === req.utilisateur.id) throw new ErreurClient('Tu ne peux pas changer ton propre rôle.');
+    db.prepare('UPDATE utilisateurs SET role = ? WHERE id = ?').run(role, compte.id);
     res.json({ ok: true });
   });
 
@@ -232,6 +244,7 @@ export function routesAdmin({ db, config, maintenant }) {
     campagneDebut: config.campagneDebut?.toISOString() ?? null,
     campagneFin: config.campagneFin?.toISOString() ?? null,
     seuilSignalements: config.seuilSignalements,
+    limiteCartes: config.limiteCartes,
     statut: statutCampagne(config, maintenant()),
   });
 
@@ -252,8 +265,10 @@ export function routesAdmin({ db, config, maintenant }) {
     if (!Number.isInteger(seuil) || seuil < 1 || seuil > 50) throw new ErreurClient('Le seuil de signalements va de 1 à 50.');
     const promo = nettoyerNom(b.promo);
     if ([...promo].length > 40) throw new ErreurClient('Le nom de la promo fait 40 caractères maximum.');
+    const limite = b.limiteCartes === undefined ? config.limiteCartes : Number(b.limiteCartes);
+    if (!Number.isInteger(limite) || limite < 0 || limite > 500) throw new ErreurClient('La limite de cartes va de 0 (sans limite) à 500.');
 
-    enregistrerParametres(db, config, { promo, campagneDebut: debut, campagneFin: fin, seuilSignalements: seuil });
+    enregistrerParametres(db, config, { promo, campagneDebut: debut, campagneFin: fin, seuilSignalements: seuil, limiteCartes: limite });
     // Un seuil abaissé s'applique tout de suite aux cartes déjà signalées.
     const { changes: masquees } = db
       .prepare(

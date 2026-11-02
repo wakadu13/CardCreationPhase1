@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
+import { rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { after, before, test } from 'node:test';
 import { CLAUSES } from '../shared/certificat.js';
-import { LIMITE_CARTES } from '../shared/regles.js';
 import { creerApp } from '../server/app.js';
 import { assurerAdmin, identifiantDepuisNom } from '../server/comptes.js';
 import { lireConfig } from '../server/config.js';
@@ -59,8 +62,9 @@ function client() {
 }
 
 // Parcours complet d'un participant : compte créé par l'organisateur, première connexion, certificat.
-async function participant(identifiant, { signer = true } = {}) {
-  const creation = await admin.post('/api/admin/comptes', { comptes: [{ nomComplet: `Prénom ${identifiant}`, identifiant }] });
+// role : 'participant' (voit et signale) ou 'editeur' (conçoit aussi les cartes).
+async function participant(identifiant, { signer = true, role = 'participant' } = {}) {
+  const creation = await admin.post('/api/admin/comptes', { comptes: [{ nomComplet: `Prénom ${identifiant}`, identifiant }], role });
   assert.equal(creation.status, 201, JSON.stringify(creation.corps));
   const c = client();
   assert.equal((await c.post('/api/connexion', { identifiant, motDePasse: creation.corps.comptes[0].motDePasse })).status, 200);
@@ -68,6 +72,8 @@ async function participant(identifiant, { signer = true } = {}) {
   if (signer) assert.equal((await c.post('/api/certificat', { accords: CLAUSES.map((x) => x.id) })).status, 201);
   return c;
 }
+
+const editeur = (identifiant, options = {}) => participant(identifiant, { ...options, role: 'editeur' });
 
 const idDe = async (identifiant) => (await admin.get('/api/admin/comptes')).corps.find((c) => c.identifiant === identifiant).id;
 
@@ -166,8 +172,14 @@ test('le certificat est obligatoire et porte le nom saisi par les organisateurs'
   assert.ok(!registre.some((s) => s.nomComplet === 'Faux Nom'));
 });
 
-test('création de cartes : validation, image et limite de 5', async () => {
-  const c = await participant('createur');
+test('création de cartes : réservée aux éditeurs, validation, image et limite réglable', async () => {
+  const simple = await participant('spectateur');
+  const refus = await simple.post('/api/cartes', carte('Interdite'));
+  assert.equal(refus.status, 403);
+  assert.equal((await simple.get('/api/cartes/miennes')).status, 403);
+  assert.equal((await simple.get('/api/cartes')).status, 200);
+
+  const c = await editeur('createur');
   assert.equal((await c.post('/api/cartes', { ...carte(), confirmeSignataires: false })).status, 400);
   assert.equal((await c.post('/api/cartes', { ...carte(), filiere: 'navigants' })).status, 400);
   const tropForte = await c.post('/api/cartes', { ...carte(), pv: 150, attaques: [{ nom: 'Boum', energie: 3, degats: 120, effet: 'aucun' }] });
@@ -184,9 +196,13 @@ test('création de cartes : validation, image et limite de 5', async () => {
   assert.equal(image.status, 200);
   assert.equal(Buffer.from(image.corps).subarray(1, 4).toString(), 'PNG');
 
-  for (let i = 2; i <= LIMITE_CARTES; i++) assert.equal((await c.post('/api/cartes', carte(`Carte ${i}`))).status, 201);
+  // Sans limite par défaut, puis limite fixée à 3 par l'organisation
+  assert.equal((await c.get('/api/cartes/miennes')).corps.limite, 0);
+  for (let i = 2; i <= 3; i++) assert.equal((await c.post('/api/cartes', carte(`Carte ${i}`))).status, 201);
+  assert.equal((await admin.put('/api/admin/parametres', { seuilSignalements: 3, limiteCartes: 3 })).status, 200);
   assert.equal((await c.post('/api/cartes', carte('Une de trop'))).status, 409);
-  assert.equal((await c.get('/api/cartes/miennes')).corps.cartes.length, LIMITE_CARTES);
+  assert.equal((await c.get('/api/cartes/miennes')).corps.cartes.length, 3);
+  assert.equal((await admin.put('/api/admin/parametres', { seuilSignalements: 3, limiteCartes: 0 })).status, 200);
 
   const id = premiere.corps.id;
   const modif = await c.put(`/api/cartes/${id}`, { ...carte('Renommée'), filiere: 'egid', image: null });
@@ -199,15 +215,15 @@ test('création de cartes : validation, image et limite de 5', async () => {
 });
 
 test('on ne modifie ni ne supprime la carte d’un autre', async () => {
-  const a = await participant('proprio');
-  const b = await participant('intrus');
+  const a = await editeur('proprio');
+  const b = await editeur('intrus');
   const { corps } = await a.post('/api/cartes', carte('À moi'));
   assert.equal((await b.put(`/api/cartes/${corps.id}`, carte('Piratée'))).status, 404);
   assert.equal((await b.del(`/api/cartes/${corps.id}`)).status, 404);
 });
 
 test('signalements : masquage automatique au seuil, l’auteur seul la voit et peut la supprimer', async () => {
-  const auteur = await participant('auteur');
+  const auteur = await editeur('auteur');
   const { corps: c } = await auteur.post('/api/cartes', carte('Trop loin'));
   const [r1, r2, r3, r4] = await Promise.all(['sig1', 'sig2', 'sig3', 'sig4'].map((n) => participant(n)));
 
@@ -233,7 +249,7 @@ test('signalements : masquage automatique au seuil, l’auteur seul la voit et p
 });
 
 test('organisateurs : traiter les signalements (masquer, classer, supprimer) et exporter', async () => {
-  const auteur = await participant('auteur2');
+  const auteur = await editeur('auteur2');
   const { corps: c } = await auteur.post('/api/cartes', carte('Victime de spam'));
   const { corps: c2 } = await auteur.post('/api/cartes', carte('Vraiment limite'));
   const rapporteurs = await Promise.all(['spam1', 'spam2', 'spam3', 'spam4'].map((n) => participant(n)));
@@ -249,9 +265,13 @@ test('organisateurs : traiter les signalements (masquer, classer, supprimer) et 
   assert.ok(liste.corps.cartes.some((x) => x.id === c2.id && x.statut === 'visible'));
   assert.equal((await admin.get('/api/admin/resume')).corps.aTraiter >= 2, true);
 
-  // L'organisateur voit les cartes sans avoir signé de certificat, mais n'en crée pas
+  // L'organisateur voit les cartes sans avoir signé de certificat ; pour en créer, il doit signer
   assert.equal((await admin.get(`/api/cartes/${c.id}`)).status, 200);
   assert.equal((await admin.post('/api/cartes', carte('Carte orga'))).status, 403);
+  assert.equal((await admin.post('/api/certificat', { accords: CLAUSES.map((x) => x.id) })).status, 201);
+  const carteOrga = await admin.post('/api/cartes', carte('Carte orga'));
+  assert.equal(carteOrga.status, 201);
+  assert.equal((await admin.del(`/api/cartes/${carteOrga.corps.id}`)).status, 200);
 
   // Masquage manuel d'une carte sous le seuil
   assert.equal((await admin.post(`/api/admin/cartes/${c2.id}/masquer`)).status, 200);
@@ -279,7 +299,7 @@ test('organisateurs : traiter les signalements (masquer, classer, supprimer) et 
 });
 
 test('organisateurs : mot de passe oublié, correction du nom, suppression de compte', async () => {
-  const oublieux = await participant('oublieux');
+  const oublieux = await editeur('oublieux');
   const { corps: carteOubli } = await oublieux.post('/api/cartes', carte('Carte de l’oublieux'));
   const id = await idDe('oublieux');
 
@@ -302,6 +322,44 @@ test('organisateurs : mot de passe oublié, correction du nom, suppression de co
   assert.equal((await admin.del(`/api/admin/comptes/${await idDe('admin')}`)).status, 400);
 });
 
+test('rôles : un participant promu éditeur peut créer des cartes, et inversement', async () => {
+  const c = await participant('promu');
+  assert.equal((await c.post('/api/cartes', carte('Pas encore'))).status, 403);
+  const id = await idDe('promu');
+  assert.equal((await admin.patch(`/api/admin/comptes/${id}/role`, { role: 'editeur' })).status, 200);
+  const creee = await c.post('/api/cartes', carte('Enfin'));
+  assert.equal(creee.status, 201);
+  assert.equal((await c.get('/api/etat')).corps.utilisateur.estEditeur, true);
+  assert.equal((await admin.patch(`/api/admin/comptes/${id}/role`, { role: 'participant' })).status, 200);
+  assert.equal((await c.put(`/api/cartes/${creee.corps.id}`, carte('Encore'))).status, 403);
+  assert.equal((await admin.patch(`/api/admin/comptes/${id}/role`, { role: 'inconnu' })).status, 400);
+  assert.equal((await admin.patch(`/api/admin/comptes/${await idDe('admin')}/role`, { role: 'participant' })).status, 400);
+});
+
+test('migration : une base de l’ancienne version accepte le rôle éditeur', () => {
+  const chemin = join(tmpdir(), `as-de-salon-migration-${process.pid}-${Date.now()}.sqlite`);
+  const ancienne = new DatabaseSync(chemin);
+  ancienne.exec(`CREATE TABLE utilisateurs (
+    id INTEGER PRIMARY KEY, identifiant TEXT NOT NULL UNIQUE COLLATE NOCASE, hash TEXT NOT NULL,
+    nom_complet TEXT NOT NULL DEFAULT '', role TEXT NOT NULL DEFAULT 'participant' CHECK (role IN ('participant', 'admin')),
+    doit_changer_mdp INTEGER NOT NULL DEFAULT 1, derniere_connexion TEXT, cree_le TEXT NOT NULL)`);
+  ancienne.prepare(`INSERT INTO utilisateurs (identifiant, hash, nom_complet, role, cree_le) VALUES ('ancien', 'x', 'Ancien Compte', 'admin', 'd')`).run();
+  ancienne.exec(`CREATE TABLE cartes (id INTEGER PRIMARY KEY, auteur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    nom TEXT NOT NULL, sous_titre TEXT NOT NULL DEFAULT '', filiere TEXT NOT NULL, pv INTEGER NOT NULL, description TEXT NOT NULL DEFAULT '',
+    attaques TEXT NOT NULL, image BLOB, image_type TEXT, image_x REAL NOT NULL DEFAULT 50, image_y REAL NOT NULL DEFAULT 50,
+    image_zoom REAL NOT NULL DEFAULT 1, statut TEXT NOT NULL DEFAULT 'visible', cree_le TEXT NOT NULL, modifie_le TEXT NOT NULL)`);
+  ancienne.prepare(`INSERT INTO cartes (auteur_id, nom, filiere, pv, attaques, cree_le, modifie_le) VALUES (1, 'Vieille', 'tesa', 80, '[]', 'd', 'd')`).run();
+  ancienne.close();
+
+  const migree = ouvrirBase(chemin);
+  assert.equal(migree.prepare(`SELECT role FROM utilisateurs WHERE identifiant = 'ancien'`).get().role, 'admin');
+  assert.equal(migree.prepare('SELECT COUNT(*) AS n FROM cartes').get().n, 1);
+  migree.prepare(`INSERT INTO utilisateurs (identifiant, hash, role, cree_le) VALUES ('nouveau', 'x', 'editeur', 'd')`).run();
+  assert.equal(migree.prepare(`SELECT role FROM utilisateurs WHERE identifiant = 'nouveau'`).get().role, 'editeur');
+  migree.close();
+  rmSync(chemin, { force: true });
+});
+
 test('le dernier organisateur ne peut pas supprimer son compte, et le compte admin n’est créé qu’une fois', async () => {
   assert.equal((await admin.del('/api/moi', { motDePasse: 'admin-definitif' })).status, 409);
   const deuxieme = await assurerAdmin(db, { identifiant: 'autre-admin' });
@@ -314,7 +372,7 @@ test('paramètres de campagne modifiables par les organisateurs et conservés en
   assert.equal((await admin.put('/api/admin/parametres', { seuilSignalements: 0 })).status, 400);
 
   // Abaisser le seuil masque aussitôt les cartes qui l'atteignent
-  const auteur = await participant('auteur3');
+  const auteur = await editeur('auteur3');
   const { corps: c } = await auteur.post('/api/cartes', carte('Une seule plainte'));
   await (await participant('plaignant')).post(`/api/cartes/${c.id}/signalements`, { motif: 'autre' });
   const r = await admin.put('/api/admin/parametres', {
@@ -384,7 +442,7 @@ test('personnalisation des textes : réservée aux organisateurs, validée, cons
 });
 
 test('dates de campagne : création fermée avant et après, suppression toujours possible', async () => {
-  const c = await participant('horloge');
+  const c = await editeur('horloge');
   const { corps } = await c.post('/api/cartes', carte('Avant clôture'));
   const sauvegarde = horloge;
   try {
@@ -403,7 +461,7 @@ test('dates de campagne : création fermée avant et après, suppression toujour
 });
 
 test('protection CSRF : origine étrangère et formulaire non JSON refusés', async () => {
-  const c = await participant('prudent');
+  const c = await editeur('prudent');
   const etranger = await c.post('/api/cartes', carte(), { origin: 'https://site-malveillant.example' });
   assert.equal(etranger.status, 403);
   const r = await fetch(`${base}/api/connexion`, {
@@ -415,7 +473,7 @@ test('protection CSRF : origine étrangère et formulaire non JSON refusés', as
 });
 
 test('protection CSRF derrière un hébergeur : l’adresse publique annoncée par le proxy est acceptée', async () => {
-  const c = await participant('derriere-proxy');
+  const c = await editeur('derriere-proxy');
   const viaProxy = await c.post('/api/cartes', carte('Via le proxy'), {
     origin: 'https://as-de-salon.onrender.com',
     'x-forwarded-host': 'as-de-salon.onrender.com',
@@ -428,9 +486,15 @@ test('mode démonstration : comptes et cartes fictifs, jamais sur une base déj�
 
   const vide = ouvrirBase(':memory:');
   const demo = await remplirDemo(vide, { motDePasse: 'demo-demo' });
-  assert.deepEqual(demo.identifiants, ['camille.martin', 'lea.bernard', 'hugo.roux', 'ines.moreau']);
+  assert.deepEqual(demo.identifiants, [
+    'camille.martin (editeur)',
+    'lea.bernard (editeur)',
+    'ines.moreau (editeur)',
+    'hugo.roux (participant)',
+    'theo.garnier (participant)',
+  ]);
   assert.equal(vide.prepare('SELECT COUNT(*) AS n FROM cartes').get().n, 6);
-  assert.equal(vide.prepare('SELECT COUNT(*) AS n FROM certificats').get().n, 4);
+  assert.equal(vide.prepare('SELECT COUNT(*) AS n FROM certificats').get().n, 5);
   assert.equal(vide.prepare(`SELECT COUNT(*) AS n FROM utilisateurs WHERE doit_changer_mdp = 1`).get().n, 0);
   assert.equal(vide.prepare('SELECT COUNT(*) AS n FROM signalements').get().n, 1);
   // Un second démarrage n'ajoute rien
@@ -439,7 +503,7 @@ test('mode démonstration : comptes et cartes fictifs, jamais sur une base déj�
 });
 
 test('supprimer son compte retire ses cartes et son certificat', async () => {
-  const c = await participant('partant');
+  const c = await editeur('partant');
   const { corps } = await c.post('/api/cartes', carte('Dernière carte'));
   const temoin = await participant('temoin2');
   assert.equal((await c.del('/api/moi', { motDePasse: 'mauvais' })).status, 403);

@@ -8,7 +8,7 @@ import { icone } from '../icones.js';
 import { enBloc, estVide } from '../textes.js';
 import { confirmer, toast } from '../ui.js';
 
-export const titre = 'Mon hangar';
+export const titre = 'Mes cartes';
 
 const nomMotif = (id) => MOTIFS_SIGNALEMENT.find((m) => m.id === id)?.nom ?? id;
 
@@ -38,7 +38,7 @@ function emplacement(carte, ouverte) {
 }
 
 function alveoleVide(index, statut) {
-  const contenu = html`<span class="alveole-vide__num mono">Emplacement ${index}</span>
+  const contenu = html`<span class="alveole-vide__num mono">${index ? `Emplacement ${index}` : 'Nouvelle carte'}</span>
     <span class="alveole-vide__plus">${icone('plus')}</span>
     <span class="alveole-vide__texte">${statut === 'ouverte' ? 'Concevoir une carte' : statut === 'a-venir' ? 'Ouverture prochaine' : 'Campagne terminée'}</span>`;
   return statut === 'ouverte'
@@ -89,20 +89,23 @@ async function charger(main) {
   const statut = statutCampagne();
   const u = utilisateur();
   const prenom = (u.nomComplet ?? u.identifiant).split(' ')[0];
-  const restantes = limite - cartes.length;
+  const sansLimite = !limite || limite <= 0;
+  const restantes = sansLimite ? 1 : limite - cartes.length;
 
   monter(
     main,
     html`<div class="entete-page">
         <div>
-          <p class="surtitre">Hangar de @${u.identifiant}</p>
+          <p class="surtitre">Atelier de @${u.identifiant} · éditeur de cartes</p>
           <h1>Salut ${prenom}</h1>
           <p>
             ${cartes.length === 0
-              ? `Ton hangar est vide. Tu peux concevoir jusqu’à ${limite} cartes pendant la campagne.`
-              : restantes > 0
-                ? `${cartes.length} carte${cartes.length > 1 ? 's' : ''} sur ${limite}. Encore ${restantes} emplacement${restantes > 1 ? 's' : ''} libre${restantes > 1 ? 's' : ''}.`
-                : `Hangar complet : ${limite} cartes sur ${limite}. Supprime une carte pour en concevoir une autre.`}
+              ? `Aucune carte pour l’instant. ${sansLimite ? 'Conçois autant de cartes que la promo en mérite.' : `Tu peux en concevoir jusqu’à ${limite}.`}`
+              : sansLimite
+                ? `${cartes.length} carte${cartes.length > 1 ? 's' : ''} conçue${cartes.length > 1 ? 's' : ''}. Pas de limite : à toi de jouer.`
+                : restantes > 0
+                  ? `${cartes.length} carte${cartes.length > 1 ? 's' : ''} sur ${limite}. Encore ${restantes} emplacement${restantes > 1 ? 's' : ''} libre${restantes > 1 ? 's' : ''}.`
+                  : `Limite atteinte : ${limite} cartes sur ${limite}. Supprime une carte pour en concevoir une autre.`}
           </p>
         </div>
         <div class="groupe-boutons">
@@ -117,12 +120,13 @@ async function charger(main) {
       </aside>`}
       <div class="hangar">
         <section aria-label="Mes cartes">
-          <div class="jauge-quota" role="img" aria-label="${cartes.length} cartes sur ${limite}">
+          ${!sansLimite &&
+          html`<div class="jauge-quota" role="img" aria-label="${cartes.length} cartes sur ${limite}">
             ${Array.from({ length: limite }, (_, i) => html`<span class="${i < cartes.length ? 'est-pleine' : ''}"></span>`)}
-          </div>
+          </div>`}
           <div class="alveoles">
             ${cartes.map((c) => emplacement(c, statut === 'ouverte'))}
-            ${Array.from({ length: Math.max(0, restantes) }, (_, i) => alveoleVide(cartes.length + i + 1, statut))}
+            ${Array.from({ length: Math.max(0, restantes) }, (_, i) => alveoleVide(sansLimite ? null : cartes.length + i + 1, statut))}
           </div>
         </section>
         ${panneauCampagne(stats)}

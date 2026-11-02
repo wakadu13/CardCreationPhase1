@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { rendreCarte, rendreInclinable } from '../carte.js';
 import { etat, formatDate } from '../etat.js';
 import { html, monter } from '../html.js';
+import { logosEcole } from '../icones.js';
 import { enBloc, enLigne, estVide } from '../textes.js';
 import { pendant, toast } from '../ui.js';
 
@@ -58,6 +59,7 @@ export function afficher(main) {
         <div class="accueil__texte">
           ${!estVide('accueil.surtitre') && html`<p class="surtitre">${enLigne('accueil.surtitre')}</p>`}
           <h1 class="titre-pochoir">${etat.serveur.nomJeu}</h1>
+          ${logosEcole({ classe: 'logos-ecole--accueil' })}
           <div class="accueil__accroche texte-riche">${enBloc('accueil.accroche')}</div>
           ${etapes.length > 0 &&
           html`<ol class="etapes">

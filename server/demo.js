@@ -13,6 +13,7 @@ const PARTICIPANTS = [
   {
     identifiant: 'camille.martin',
     nomComplet: 'Camille Martin',
+    role: 'editeur',
     cartes: [
       EXEMPLES[0],
       {
@@ -26,13 +27,23 @@ const PARTICIPANTS = [
         ],
         description: 'Capable de dormir debout pendant une prise d’armes.',
       },
+      {
+        nom: 'Sondage Express',
+        sousTitre: 'Questionne même le distributeur',
+        filiere: 'egid',
+        pv: 90,
+        attaques: [{ nom: 'Enquête de terrain', energie: 2, degats: 40, effet: 'brouillage', texte: '' }],
+        description: 'Échantillon : une personne. Conclusion : universelle.',
+      },
     ],
   },
   {
     identifiant: 'lea.bernard',
     nomComplet: 'Léa Bernard',
+    role: 'editeur',
     cartes: [
       EXEMPLES[1],
+      EXEMPLES[2],
       {
         nom: 'Wifi Instable',
         sousTitre: 'Admin réseau autoproclamée',
@@ -46,23 +57,11 @@ const PARTICIPANTS = [
       },
     ],
   },
-  {
-    identifiant: 'hugo.roux',
-    nomComplet: 'Hugo Roux',
-    cartes: [
-      EXEMPLES[2],
-      {
-        nom: 'Sondage Express',
-        sousTitre: 'Questionne même le distributeur',
-        filiere: 'egid',
-        pv: 90,
-        attaques: [{ nom: 'Enquête de terrain', energie: 2, degats: 40, effet: 'brouillage', texte: '' }],
-        description: 'Échantillon : une personne. Conclusion : universelle.',
-      },
-    ],
-  },
-  // Sans carte : pour essayer l'atelier depuis un hangar vide
-  { identifiant: 'ines.moreau', nomComplet: 'Inès Moreau', cartes: [] },
+  // Éditeur sans carte : pour essayer l'atelier depuis un hangar vide
+  { identifiant: 'ines.moreau', nomComplet: 'Inès Moreau', role: 'editeur', cartes: [] },
+  // Participants : ils voient la galerie et peuvent signaler
+  { identifiant: 'hugo.roux', nomComplet: 'Hugo Roux', role: 'participant', cartes: [] },
+  { identifiant: 'theo.garnier', nomComplet: 'Théo Garnier', role: 'participant', cartes: [] },
 ];
 
 export async function remplirDemo(db, { motDePasse, maintenant = new Date() } = {}) {
@@ -78,9 +77,9 @@ export async function remplirDemo(db, { motDePasse, maintenant = new Date() } = 
         db
           .prepare(
             `INSERT INTO utilisateurs (identifiant, hash, nom_complet, role, doit_changer_mdp, derniere_connexion, cree_le)
-             VALUES (?, ?, ?, 'participant', 0, ?, ?)`,
+             VALUES (?, ?, ?, ?, 0, ?, ?)`,
           )
-          .run(p.identifiant, hash, p.nomComplet, date, date).lastInsertRowid,
+          .run(p.identifiant, hash, p.nomComplet, p.role, date, date).lastInsertRowid,
       );
       ids[p.identifiant] = id;
       db.prepare('INSERT INTO certificats (utilisateur_id, nom_complet, version, numero, signe_le) VALUES (?, ?, ?, ?, ?)').run(
@@ -125,5 +124,5 @@ export async function remplirDemo(db, { motDePasse, maintenant = new Date() } = 
     }
   });
 
-  return { identifiants: PARTICIPANTS.map((p) => p.identifiant), motDePasse: mdp };
+  return { identifiants: PARTICIPANTS.map((p) => `${p.identifiant} (${p.role})`), motDePasse: mdp };
 }

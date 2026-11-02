@@ -1,4 +1,5 @@
-import { raw } from './html.js';
+import { html, raw } from './html.js';
+import { etat } from './etat.js';
 
 // Emblèmes des filières (dessins originaux, grille 24×24).
 const TRAIT = 'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"';
@@ -39,23 +40,31 @@ export function icone(nom, classe = '') {
   return raw(`<svg viewBox="0 0 24 24" class="icone ${classe}" aria-hidden="true" focusable="false">${DESSINS[nom] ?? ''}</svg>`);
 }
 
-// Insigne : cocarde tricolore portée par des ailes dorées.
+// Insigne du jeu : jeton de poker ailé, cocarde au centre (dessin original).
 export function logo() {
-  return raw(`<svg viewBox="0 0 120 48" aria-hidden="true" focusable="false">
-  <defs>
-    <linearGradient id="or-aile" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#f6e2a0"/><stop offset=".55" stop-color="#d3ab4f"/><stop offset="1" stop-color="#9c7629"/>
-    </linearGradient>
-  </defs>
-  <g id="aile-g" fill="url(#or-aile)" stroke="#5e450f" stroke-width=".6" stroke-linejoin="round">
-    <path d="M47 17.5C34 15 18 11.5 3 9.5c3.5 3 7 4.6 11 5.6-4.2.4-7.7 0-10.8-.8 3.2 3.2 7.2 4.9 11.6 5.6-3.9.7-7.3.6-10.2 0 3.3 3 7.4 4.5 11.8 4.8-3.3 1-6.4 1.2-9.1.9 4.5 3.7 11.6 5.1 18.8 4.8L47 30z"/>
-    <path fill="none" stroke="#7b5b17" stroke-width=".7" opacity=".7" d="M44 20.5 16 16M44 24 17 21.5M44 27.5 20 26.5"/>
+  return raw(`<svg viewBox="0 0 120 56" aria-hidden="true" focusable="false" shape-rendering="crispEdges">
+  <g fill="#f5b53f" stroke="#3b2a0a" stroke-width="1.2" stroke-linejoin="round">
+    <path d="M44 20H30v4h-8v4h-8v4H6v4h16v-4h8v-4h8v4h6z"/>
+    <path d="M76 20h14v4h8v4h8v4h8v4H98v-4h-8v-4h-8v4h-6z"/>
   </g>
-  <use href="#aile-g" transform="matrix(-1 0 0 1 120 0)"/>
-  <circle cx="60" cy="24" r="14" fill="#1f3f96" stroke="#e9cd7f" stroke-width="1.6"/>
-  <circle cx="60" cy="24" r="9.2" fill="#f7f5ef"/>
-  <circle cx="60" cy="24" r="4.6" fill="#d52b36"/>
+  <circle cx="60" cy="28" r="22" fill="#fe5f55" stroke="#3b2a0a" stroke-width="2"/>
+  <circle cx="60" cy="28" r="22" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="7 9.2" opacity=".9"/>
+  <circle cx="60" cy="28" r="14" fill="#2b8de1" stroke="#3b2a0a" stroke-width="1.5"/>
+  <circle cx="60" cy="28" r="9" fill="#f7f5ef"/>
+  <circle cx="60" cy="28" r="4.5" fill="#fe5f55"/>
 </svg>`);
+}
+
+// Logos de l'école : images téléversées par les organisateurs, sinon emblèmes de remplacement.
+export function logosEcole({ classe = '' } = {}) {
+  const logos = etat.serveur?.logos ?? {};
+  const ema = logos.ema
+    ? html`<img class="logo-ecole" src="${logos.ema}" alt="EMA" />`
+    : html`<span class="logo-remplacement" title="Logo EMA à ajouter dans Organisation › Personnalisation"><b>EMA</b><small>École militaire de l’air</small></span>`;
+  const ecole = logos.ecole
+    ? html`<img class="logo-ecole" src="${logos.ecole}" alt="École de l’air et de l’espace" />`
+    : html`<span class="logo-remplacement logo-remplacement--large" title="Logo École de l’air et de l’espace à ajouter dans Organisation › Personnalisation"><b>École de l’air et de l’espace</b><small>Salon-de-Provence</small></span>`;
+  return html`<span class="logos-ecole ${classe}">${ema}${ecole}</span>`;
 }
 
 // Illustration par défaut d'une carte : ciel de nuit et fumées tricolores.

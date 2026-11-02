@@ -10,7 +10,7 @@
 export const VARIABLES = [
   { nom: 'nomJeu', aide: 'nom du jeu' },
   { nom: 'promo', aide: 'nom de la promo' },
-  { nom: 'limiteCartes', aide: 'cartes par personne' },
+  { nom: 'limiteCartes', aide: 'cartes max par éditeur (0 = sans limite)' },
   { nom: 'seuil', aide: 'seuil de signalements' },
   { nom: 'budget', aide: 'budget de puissance' },
 ];
@@ -42,11 +42,11 @@ export const SECTIONS_TEXTES = [
         type: 'texte',
         max: 500,
         defaut:
-          'Le jeu de cartes de la promo, fait par la promo. Pendant une semaine, chacun conçoit ses cartes : un nom, une filière, des points de vie, des attaques… et beaucoup d’autodérision.',
+          'Le jeu de cartes de la promo. Une petite équipe d’éditeurs conçoit les cartes : un nom, une filière, des points de vie, des attaques… et beaucoup d’autodérision. Tout le monde les découvre dans la galerie, et peut signaler une carte qui va trop loin.',
       },
       { cle: 'accueil.etape1', libelle: 'Étape 1', type: 'ligne', max: 100, defaut: '**Connecte-toi** avec les identifiants reçus des organisateurs' },
       { cle: 'accueil.etape2', libelle: 'Étape 2', type: 'ligne', max: 100, defaut: '**Signe le certificat** de consentement' },
-      { cle: 'accueil.etape3', libelle: 'Étape 3', type: 'ligne', max: 100, defaut: '**Conçois jusqu’à {limiteCartes} cartes** dans l’atelier' },
+      { cle: 'accueil.etape3', libelle: 'Étape 3', type: 'ligne', max: 100, defaut: '**Découvre les cartes** de la promo dans la galerie' },
       {
         cle: 'accueil.noteConnexion',
         libelle: 'Message sous le formulaire de connexion',
@@ -59,7 +59,7 @@ export const SECTIONS_TEXTES = [
         libelle: 'Description de la phase 1',
         type: 'texte',
         max: 300,
-        defaut: 'Signe le certificat de consentement, puis conçois jusqu’à **{limiteCartes} cartes**. Une carte qui va trop loin se signale.',
+        defaut: 'Chacun signe le certificat de consentement. Les **éditeurs de cartes** conçoivent les cartes de la promo dans l’atelier ; une carte qui va trop loin se signale.',
       },
       {
         cle: 'accueil.phase2',

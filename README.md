@@ -1,35 +1,39 @@
 # Les As de Salon · Phase 1
 
-Site de la **campagne de création** du jeu de cartes de cohésion. Les organisateurs créent un compte pour chaque participant choisi. Chaque participant signe le certificat de consentement, puis conçoit jusqu’à **5 cartes** dans un atelier avec aperçu en direct. Les cartes serviront au jeu de la phase 2.
+Site de la **campagne de création** du jeu de cartes de cohésion. Les organisateurs créent un compte pour chaque personne choisie. Tout le monde signe le certificat de consentement et découvre les cartes dans la galerie ; une petite équipe d’**éditeurs de cartes**, désignée par l’organisation, conçoit les cartes dans un atelier avec aperçu en direct. Les cartes serviront au jeu de la phase 2.
 
-Design inspiré de l’École de l’air de Salon-de-Provence : nuit de vol et instruments de bord, galons dorés, cocarde tricolore, fumées de la Patrouille de France. Projet étudiant non officiel.
+Design façon **Balatro** (tapis de jeu, écran CRT, typo pixel, boutons en relief, jetons de poker) aux couleurs de l’École de l’air et de l’espace de Salon-de-Provence : cocarde tricolore et or. Les logos officiels (EMA, École de l’air et de l’espace) s’ajoutent depuis le site, par les organisateurs qui en ont l’autorisation. Projet étudiant non officiel.
 
-| Organisation : création des comptes | Organisation : signalements |
+| Accueil | Atelier des éditeurs |
 | --- | --- |
-| ![Comptes](docs/apercus/organisation-comptes.jpg) | ![Signalements](docs/apercus/organisation-signalements.jpg) |
-| **Atelier de conception** | **Galerie** |
-| ![Atelier](docs/apercus/atelier.jpg) | ![Galerie](docs/apercus/galerie.jpg) |
-| **Personnalisation des textes** | **Cycle des filières (règles)** |
-| ![Personnalisation](docs/apercus/personnalisation.jpg) | ![Cycle](docs/apercus/cycle.jpg) |
+| ![Accueil](docs/apercus/accueil.jpg) | ![Atelier](docs/apercus/atelier.jpg) |
+| **Galerie** | **Organisation : comptes et rôles** |
+| ![Galerie](docs/apercus/galerie.jpg) | ![Comptes](docs/apercus/organisation-comptes.jpg) |
+| **Proposition de combat** | **Cycle des filières** |
+| ![Combat](docs/apercus/combat.jpg) | ![Cycle](docs/apercus/cycle.jpg) |
 
 ## Ce que fait le site
+
+**Trois rôles**
+- **Participant** : se connecte, signe le certificat, découvre les cartes dans la galerie et peut signaler.
+- **Éditeur de cartes** : participant qui conçoit aussi les cartes dans l’atelier (sans limite, ou avec la limite fixée dans Paramètres).
+- **Organisateur** : gère les comptes, les rôles, les signalements, les paramètres et les textes ; peut aussi concevoir des cartes une fois son certificat signé.
 
 **Pour les participants**
 - **Pas d’inscription libre** : on se connecte avec les identifiants donnés par les organisateurs, puis on choisit son propre mot de passe à la première connexion.
 - **Certificat de consentement obligatoire** avant de créer ou de voir la moindre carte : six engagements à cocher, au nom enregistré par les organisateurs. Le certificat est numéroté et imprimable.
 - **Registre des signataires** : la liste des personnes qu’on a le droit de mettre en scène sur une carte.
-- **Atelier** : nom, sous-titre, filière, PV, illustration (recadrage et zoom), 1 ou 2 attaques, description. Aperçu en direct, jauge de puissance et « check-list prévol ».
-- **Limite de 5 cartes** par personne, vérifiée par le serveur.
+- **Atelier** (éditeurs) : nom, sous-titre, filière, PV, illustration (recadrage et zoom), 1 ou 2 attaques, description. Aperçu en direct, jauge de puissance et « check-list prévol ».
 - **Galerie** avec filtres par filière, recherche, tri, et un bouton **Signaler** sur chaque carte.
 - **Hangar** : ses propres cartes, compte à rebours de la campagne, statistiques par filière.
 - **Retrait du consentement** : supprimer son compte efface ses cartes, ses signalements et son certificat.
 
 **Pour les organisateurs** (menu Organisation)
-- **Comptes** : création d’un ou plusieurs comptes en collant une liste de noms (« Prénom Nom », un par ligne). L’identifiant est généré automatiquement (camille.martin) et chaque compte reçoit un mot de passe provisoire. On peut ensuite copier les identifiants, les télécharger en CSV ou **imprimer des fiches à découper et distribuer**. La liste des comptes montre qui s’est connecté, qui a signé et combien de cartes chacun a créées. Elle permet aussi de corriger un nom, de donner un nouveau mot de passe (en cas d’oubli) ou de supprimer un compte. On peut aussi créer d’autres comptes organisateurs.
+- **Comptes** : création d’un ou plusieurs comptes en collant une liste de noms (« Prénom Nom », un par ligne), avec le rôle choisi ; le rôle de chacun se change ensuite dans la liste. L’identifiant est généré automatiquement (camille.martin) et chaque compte reçoit un mot de passe provisoire. On peut ensuite copier les identifiants, les télécharger en CSV ou **imprimer des fiches à découper et distribuer**. La liste des comptes montre qui s’est connecté, qui a signé et combien de cartes chacun a créées. Elle permet aussi de corriger un nom, de donner un nouveau mot de passe (en cas d’oubli) ou de supprimer un compte. On peut aussi créer d’autres comptes organisateurs.
 - **Signalements** : les cartes signalées, avec le motif, le commentaire et l’auteur de chaque signalement. Actions possibles : masquer, réafficher, classer les signalements, supprimer.
 - **Cartes** : toutes les cartes, avec filtres par filière et par statut, et les mêmes actions.
 - **Paramètres** : dates d’ouverture et de clôture de la campagne (bouton « ouvrir maintenant pour 7 jours »), seuil de masquage automatique, nom de la promo. Plus l’**export JSON** des cartes pour la phase 2.
-- **Personnalisation** : les textes du site, modifiables sans toucher au code (voir plus bas).
+- **Personnalisation** : les textes du site, modifiables sans toucher au code (voir plus bas), et les **logos** (EMA, École de l’air et de l’espace) à téléverser.
 
 ## Filières
 
@@ -62,6 +66,17 @@ Chaque carte a un **budget de 100 points de puissance** :
 - effets choisis dans une liste fixe (Soin, Paralysie, Brouillage…), pour que le jeu puisse les appliquer. Les handicaps (Contrecoup, Épuisement) rendent 10 points. Le texte libre de l’attaque sert à l’humour.
 
 Le navigateur et le serveur appliquent les mêmes règles (`shared/regles.js`), donc personne ne peut contourner le budget.
+
+## Phase 2 : proposition de système de combat
+
+Décrite sur la page **Combat** du site (`#/combat`) et dans `shared/combat.js`, pour être ajustée avant d’être programmée. En résumé, façon Balatro :
+
+- chaque joueur draft un **paquet de 20 cartes** parmi celles de la promo ;
+- à chaque manche, il joue des **mains** de 1 à 5 cartes (4 mains et 3 défausses par manche) pour dépasser une **mise** (score cible) ;
+- **score = jetons × multiplicateur** : les jetons viennent des dégâts des attaques jouées (+1 par tranche de 10 PV), le multiplicateur des **combinaisons** (Binôme +2, Escadrille +4, Promo +5, Chaîne de commandement +7, Escadron +10) ;
+- chaque mise a une **filière** : les cartes qui la dominent frappent à +30, celles qu’elle domine à −10 ;
+- les **effets** des cartes deviennent des actions de main (récupérer une main, doubler le multiplicateur sur pile ou face…) ;
+- six mises par partie, dont deux **boss** avec une règle spéciale ; en duel, le premier à passer la mise gagne la manche.
 
 ## Signalements
 
@@ -133,6 +148,7 @@ Copier `.env.example` en `.env`. Toutes les valeurs sont facultatives.
 | `ADMIN_IDENTIFIANT` | Identifiant du compte organisateur créé au premier démarrage | `admin` |
 | `ADMIN_MOT_DE_PASSE` | Son mot de passe provisoire (sinon généré et affiché dans la console) | généré |
 | `PROMO`, `SEUIL_SIGNALEMENTS`, `CAMPAGNE_DEBUT`, `CAMPAGNE_FIN` | Valeurs de départ, modifiables ensuite dans Organisation › Paramètres | vide, `3`, campagne toujours ouverte |
+| `LIMITE_CARTES` | Cartes maximum par éditeur au départ (0 = sans limite), modifiable dans Paramètres | `0` |
 | `DEMO`, `DEMO_MOT_DE_PASSE` | `DEMO=1` : site de démonstration, avec des participants et des cartes fictifs créés au démarrage si la base n’a encore aucun participant. Ne jamais l’activer pour la vraie campagne | désactivé |
 | `PORT`, `DB_PATH` | Port HTTP et chemin de la base | `3000`, `data/as-de-salon.sqlite` |
 | `NODE_ENV=production` | Cookies `Secure` (HTTPS obligatoire) | — |
@@ -159,7 +175,7 @@ Ensuite, chaque modification sur la branche `main` déclenche les tests, puis, s
 
 Pour se connecter au site de démonstration :
 - organisateur : `admin` avec `ADMIN_MOT_DE_PASSE` ;
-- participants fictifs : `camille.martin`, `lea.bernard`, `hugo.roux` (avec des cartes) et `ines.moreau` (hangar vide), avec `DEMO_MOT_DE_PASSE`.
+- comptes fictifs, avec `DEMO_MOT_DE_PASSE` : éditeurs `camille.martin`, `lea.bernard` (avec des cartes) et `ines.moreau` (sans carte) ; participants `hugo.roux` et `theo.garnier`.
 
 Un badge **Démonstration** s’affiche en haut du site. Limites de l’offre gratuite : les données (comptes, cartes, textes personnalisés) repartent de zéro à chaque mise à jour, et le site s’endort après 15 minutes sans visite (la première page met alors environ une minute à s’afficher). C’est fait pour prévisualiser, pas pour la vraie campagne : voir « Mise en ligne pour la vraie campagne ».
 
@@ -189,6 +205,7 @@ Avec Render, la marche à suivre est notée en commentaire dans `render.yaml` : 
 ```
 shared/        Règles partagées navigateur + serveur
   regles.js      budget, filières et cycle, effets, validation d'une carte
+  combat.js      proposition de système de combat (phase 2)
   textes.js      textes personnalisables et leurs valeurs d'origine
   certificat.js  texte et version du certificat de consentement
   exemples.js    cartes d'exemple (accueil, règles)
@@ -197,7 +214,7 @@ server/        API Express + SQLite (node:sqlite)
   textes.js      textes personnalisés enregistrés en base
   compte-admin.js  commande de secours npm run compte-admin
   demo.js        données fictives du site de démonstration (DEMO=1)
-  routes/        connexion et certificat, cartes et signalements, organisation
+  routes/        connexion et certificat, cartes et signalements, organisation, logos
 public/        Site (HTML, CSS et JavaScript sans étape de build)
   css/carte.css  design des cartes
   js/pages/      une page par écran (admin.js = espace organisateurs)

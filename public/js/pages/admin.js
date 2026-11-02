@@ -1,11 +1,14 @@
-import { FILIERES, LIMITE_CARTES, MOTIFS_SIGNALEMENT, filiere } from '/shared/regles.js';
+import { FILIERES, MOTIFS_SIGNALEMENT, filiere } from '/shared/regles.js';
 import { SECTIONS_TEXTES, VARIABLES, champTexte } from '/shared/textes.js';
 import { actualiser, naviguer } from '../app.js';
 import { api } from '../api.js';
 import { rendreCarte } from '../carte.js';
 import { etat, formatDate } from '../etat.js';
-import { html, monter } from '../html.js';
+import { fragment, html, monter } from '../html.js';
+
+const fragmentDe = (contenu) => fragment(contenu);
 import { icone } from '../icones.js';
+import { preparerLogo } from '../image.js';
 import { formater } from '../textes.js';
 import { confirmer, ouvrirDialogue, pendant, toast } from '../ui.js';
 
@@ -115,8 +118,9 @@ function rendreIdentifiants(zone, racine, comptes, message) {
 
 // --- Onglet Comptes -------------------------------------------------------------------------
 
+const NOMS_ROLES = { participant: 'Participant', editeur: 'Éditeur de cartes', admin: 'Organisateur' };
+
 function statutCompte(c) {
-  if (c.role === 'admin') return html`<span class="puce puce--or">Organisateur</span>`;
   if (c.motDePasseProvisoire) return html`<span class="puce puce--alerte">Pas encore connecté</span>`;
   if (c.certificat === 'signe') return html`<span class="puce puce--succes">${icone('verifie')} Certificat signé</span>`;
   if (c.certificat === 'ancien') return html`<span class="puce puce--alerte">Doit re-signer</span>`;
@@ -127,8 +131,16 @@ function ligneCompte(c, moi) {
   return html`<tr data-compte="${c.id}" data-nom="${c.nomComplet}" data-identifiant="${c.identifiant}">
     <th scope="row">${c.nomComplet || '—'}</th>
     <td class="mono">@${c.identifiant}</td>
+    <td>
+      ${c.identifiant === moi
+        ? html`<span class="puce puce--or">${NOMS_ROLES[c.role]}</span>`
+        : html`<label class="sr-only" for="role-${c.id}">Rôle de ${c.nomComplet}</label>
+          <select id="role-${c.id}" class="select-role select-role--${c.role}" data-role>
+            ${Object.entries(NOMS_ROLES).map(([v, n]) => html`<option value="${v}" ${c.role === v ? html`selected` : ''}>${n}</option>`)}
+          </select>`}
+    </td>
     <td>${statutCompte(c)}</td>
-    <td class="mono">${c.role === 'admin' ? '—' : `${c.nbCartes}/${LIMITE_CARTES}`}${c.nbMasquees > 0 && html` <span class="texte-danger">(${c.nbMasquees} masquée${c.nbMasquees > 1 ? 's' : ''})</span>`}</td>
+    <td class="mono">${c.role === 'participant' ? '—' : c.nbCartes}${c.nbMasquees > 0 && html` <span class="texte-danger">(${c.nbMasquees} masquée${c.nbMasquees > 1 ? 's' : ''})</span>`}</td>
     <td class="mono">${c.nbSignalements}</td>
     <td>${c.derniereConnexion ? formatDate(c.derniereConnexion, { dateStyle: 'short' }) : html`<span class="discret">jamais</span>`}</td>
     <td>
@@ -158,7 +170,7 @@ async function ongletComptes(zone, racine) {
   const comptes = await api('/admin/comptes');
   if (zone.childElementCount > 0) rafraichirEntete();
   const moi = etat.serveur.utilisateur.identifiant;
-  const participants = comptes.filter((c) => c.role === 'participant');
+  const participants = comptes.filter((c) => c.role !== 'admin');
 
   monter(
     zone,
@@ -168,6 +180,8 @@ async function ongletComptes(zone, racine) {
           Seules les personnes que tu ajoutes ici pourront se connecter. Une personne par ligne : <strong>Prénom Nom</strong>.
           L’identifiant est créé automatiquement (camille.martin) ; pour le choisir, écris <strong>Prénom Nom ; identifiant</strong>.
           Chaque compte reçoit un mot de passe provisoire, à changer à la première connexion.
+          <strong>Participant</strong> : voit les cartes et peut signaler. <strong>Éditeur de cartes</strong> : conçoit aussi les cartes.
+          Le rôle se change à tout moment dans la liste.
         </p>
         <form class="creation-comptes" novalidate>
           <div class="champ">
@@ -182,6 +196,7 @@ async function ongletComptes(zone, racine) {
               <legend class="sr-only">Rôle</legend>
               <div class="segments">
                 <label><input type="radio" name="role" value="participant" checked /><span>Participants</span></label>
+                <label><input type="radio" name="role" value="editeur" /><span>Éditeurs de cartes</span></label>
                 <label><input type="radio" name="role" value="admin" /><span>Organisateurs</span></label>
               </div>
             </fieldset>
@@ -201,15 +216,16 @@ async function ongletComptes(zone, racine) {
           </div>
         </div>
         <p class="discret petit">
-          ${participants.filter((c) => c.motDePasseProvisoire).length} participant(s) pas encore connecté(s) ·
-          ${participants.filter((c) => c.certificat === 'signe').length} certificat(s) signé(s).
+          ${participants.filter((c) => c.motDePasseProvisoire).length} personne(s) pas encore connectée(s) ·
+          ${participants.filter((c) => c.certificat === 'signe').length} certificat(s) signé(s) ·
+          ${comptes.filter((c) => c.role === 'editeur').length} éditeur(s) de cartes.
           Mot de passe oublié : ${icone('cadenas', 'icone-texte')} donne un nouveau mot de passe provisoire.
         </p>
         <div class="table-defilante">
           <table class="tableau tableau--comptes">
             <thead>
               <tr>
-                <th scope="col">Personne</th><th scope="col">Identifiant</th><th scope="col">Statut</th>
+                <th scope="col">Personne</th><th scope="col">Identifiant</th><th scope="col">Rôle</th><th scope="col">Statut</th>
                 <th scope="col">Cartes</th><th scope="col" title="Signalements faits par cette personne">Signal. faits</th>
                 <th scope="col">Dernière connexion</th><th scope="col"><span class="sr-only">Actions</span></th>
               </tr>
@@ -258,6 +274,20 @@ async function ongletComptes(zone, racine) {
     const q = normaliser(ev.target.value.trim());
     for (const tr of zone.querySelectorAll('tbody tr[data-compte]')) {
       tr.hidden = Boolean(q) && !normaliser(`${tr.dataset.nom} ${tr.dataset.identifiant}`).includes(q);
+    }
+  });
+
+  zone.querySelector('tbody').addEventListener('change', async (ev) => {
+    const select = ev.target.closest('[data-role]');
+    if (!select) return;
+    const tr = select.closest('tr');
+    try {
+      await api(`/admin/comptes/${tr.dataset.compte}/role`, { methode: 'PATCH', corps: { role: select.value } });
+      toast(`${tr.dataset.nom} : ${NOMS_ROLES[select.value].toLowerCase()}.`);
+      await ongletComptes(zone, racine);
+    } catch (err) {
+      toast(err.message, 'erreur');
+      await ongletComptes(zone, racine);
     }
   });
 
@@ -535,6 +565,11 @@ async function ongletParametres(zone) {
           <span class="champ__aide">Nombre de signalements (de personnes différentes) qui masquent une carte.</span>
         </div>
         <div class="champ">
+          <label for="par-limite">Cartes maximum par éditeur</label>
+          <input id="par-limite" name="limite" type="number" min="0" max="500" step="1" value="${p.limiteCartes}" />
+          <span class="champ__aide">0 : sans limite.</span>
+        </div>
+        <div class="champ">
           <label for="par-promo">Nom de la promo</label>
           <input id="par-promo" name="promo" type="text" maxlength="40" value="${p.promo}" placeholder="Ex. Promo 2026" />
           <span class="champ__aide">Imprimé en bas de chaque carte.</span>
@@ -570,6 +605,7 @@ async function ongletParametres(zone) {
             campagneDebut: depuisChampDate(form.debut.value),
             campagneFin: depuisChampDate(form.fin.value),
             seuilSignalements: Number(form.seuil.value),
+            limiteCartes: Number(form.limite.value),
             promo: form.promo.value,
           },
         });
@@ -612,11 +648,46 @@ function champPerso(champ, valeur, defaut) {
   </div>`;
 }
 
+const LOGOS = [
+  { cle: 'ema', nom: 'Logo EMA', aide: 'École militaire de l’air. Affiché dans l’en-tête, à l’accueil et sur le certificat.' },
+  { cle: 'ecole', nom: 'Logo École de l’air et de l’espace', aide: 'Affiché à côté du logo EMA.' },
+];
+
+function sectionLogos() {
+  const logos = etat.serveur.logos ?? {};
+  return html`<section class="panneau">
+    <h2>Logos</h2>
+    <p class="discret">
+      Ajoute les logos officiels dont l’organisation a l’autorisation d’usage. PNG à fond transparent de préférence ;
+      l’image est réduite avant l’envoi. Sans logo, un emblème de remplacement est affiché.
+    </p>
+    <div class="grille-logos">
+      ${LOGOS.map(
+        (l) => html`<div class="logo-slot" data-logo="${l.cle}">
+          <div class="logo-slot__apercu">
+            ${logos[l.cle] ? html`<img src="${logos[l.cle]}" alt="${l.nom}" />` : html`<span class="discret petit">Aucun logo</span>`}
+          </div>
+          <strong>${l.nom}</strong>
+          <span class="champ__aide">${l.aide}</span>
+          <div class="groupe-boutons">
+            <label class="btn btn--petit btn--secondaire">
+              ${icone('image')} ${logos[l.cle] ? 'Remplacer' : 'Choisir une image'}
+              <input type="file" accept="image/*" class="sr-only" data-fichier-logo />
+            </label>
+            ${logos[l.cle] && html`<button type="button" class="btn btn--petit btn--secondaire" data-retirer-logo>${icone('croix')} Retirer</button>`}
+          </div>
+        </div>`,
+      )}
+    </div>
+  </section>`;
+}
+
 async function ongletPersonnalisation(zone) {
   const { valeurs, defauts } = await api('/admin/personnalisation');
   monter(
     zone,
-    html`<section class="panneau panneau--hud aide-perso">
+    html`${sectionLogos()}
+      <section class="panneau panneau--hud aide-perso">
         <h2>Personnaliser le site</h2>
         <p>Modifie les textes vus par les participants sans toucher au code. Ils changent pour tout le monde dès l’enregistrement.</p>
         <div class="aide-perso__grille">
@@ -698,6 +769,35 @@ async function ongletPersonnalisation(zone) {
   });
 
   boutonAnnuler.addEventListener('click', () => ongletPersonnalisation(zone));
+
+  // Logos
+  zone.addEventListener('change', async (ev) => {
+    const entree = ev.target.closest('[data-fichier-logo]');
+    if (!entree?.files?.[0]) return;
+    const cle = entree.closest('[data-logo]').dataset.logo;
+    try {
+      const image = await preparerLogo(entree.files[0]);
+      await api(`/admin/logos/${cle}`, { methode: 'PUT', corps: { image } });
+      await actualiser();
+      toast('Logo enregistré.');
+      zone.querySelector('.panneau:first-child').replaceWith(fragmentDe(sectionLogos()));
+    } catch (err) {
+      toast(err.message, 'erreur');
+    }
+  });
+  zone.addEventListener('click', async (ev) => {
+    const bouton = ev.target.closest('[data-retirer-logo]');
+    if (!bouton) return;
+    const cle = bouton.closest('[data-logo]').dataset.logo;
+    try {
+      await api(`/admin/logos/${cle}`, { methode: 'DELETE' });
+      await actualiser();
+      toast('Logo retiré.');
+      zone.querySelector('.panneau:first-child').replaceWith(fragmentDe(sectionLogos()));
+    } catch (err) {
+      toast(err.message, 'erreur');
+    }
+  });
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();

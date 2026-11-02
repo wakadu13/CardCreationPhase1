@@ -86,7 +86,10 @@ export function chargerUtilisateur(db) {
           identifiant: ligne.identifiant,
           nomComplet: ligne.nom_complet || ligne.nom_compte || null,
           certificatValide: ligne.version_certificat === VERSION_CERTIFICAT,
+          role: ligne.role,
           estAdmin: ligne.role === 'admin',
+          // Les organisateurs peuvent aussi concevoir des cartes
+          estEditeur: ligne.role === 'editeur' || ligne.role === 'admin',
           doitChangerMdp: ligne.doit_changer_mdp === 1,
         }
       : null;
@@ -104,6 +107,9 @@ const controles = {
     controles.motDePasse(u) ??
     (u.certificatValide ? null : [403, { erreur: 'Signe d’abord le certificat de consentement.', code: 'certificat' }]),
   admin: (u) => controles.motDePasse(u) ?? (u.estAdmin ? null : [403, { erreur: 'Réservé aux organisateurs.' }]),
+  // Concevoir des cartes : éditeurs et organisateurs, une fois le certificat signé
+  editeur: (u) =>
+    controles.certificat(u) ?? (u.estEditeur ? null : [403, { erreur: 'Seuls les éditeurs de cartes peuvent concevoir des cartes.' }]),
   // Lire les cartes : participant ayant signé, ou organisateur
   lecture: (u) => controles.motDePasse(u) ?? (u.estAdmin ? null : controles.certificat(u)),
 };
@@ -119,6 +125,7 @@ export const exigerMotDePassePerso = exiger(controles.motDePasse);
 export const exigerCertificat = exiger(controles.certificat);
 export const exigerAdmin = exiger(controles.admin);
 export const exigerLecture = exiger(controles.lecture);
+export const exigerEditeur = exiger(controles.editeur);
 
 // Limiteur simple en mémoire (suffisant pour une seule instance).
 export function limiteur({ max, fenetreMs }) {

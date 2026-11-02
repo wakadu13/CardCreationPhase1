@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { FILIERES, LIMITE_CARTES, MOTIFS_SIGNALEMENT, validerCarte } from '../../shared/regles.js';
-import { exigerCertificat, exigerLecture } from '../auth.js';
+import { FILIERES, MOTIFS_SIGNALEMENT, validerCarte } from '../../shared/regles.js';
+import { exigerCertificat, exigerEditeur, exigerLecture } from '../auth.js';
 import { statutCampagne } from '../config.js';
 import { transaction } from '../db.js';
 import { ErreurClient, idParam } from '../erreurs.js';
@@ -110,12 +110,12 @@ export function routesCartes({ db, config, maintenant }) {
     res.json(lignes.map((l) => formaterCarte(l, req.utilisateur.id, { signaleeParMoi: Boolean(l.signalee) })));
   });
 
-  r.get('/cartes/miennes', exigerCertificat, (req, res) => {
+  r.get('/cartes/miennes', exigerEditeur, (req, res) => {
     const lignes = db
       .prepare(`SELECT ${COLONNES} FROM cartes c JOIN utilisateurs u ON u.id = c.auteur_id WHERE c.auteur_id = ? ORDER BY c.id`)
       .all(req.utilisateur.id);
     res.json({
-      limite: LIMITE_CARTES,
+      limite: config.limiteCartes,
       cartes: lignes.map((l) => formaterCarte(l, req.utilisateur.id, { signalements: resumeSignalements(l.id) })),
     });
   });
@@ -136,13 +136,13 @@ export function routesCartes({ db, config, maintenant }) {
     res.send(Buffer.from(img.image));
   });
 
-  r.post('/cartes', exigerCertificat, (req, res) => {
+  r.post('/cartes', exigerEditeur, (req, res) => {
     exigerCampagneOuverte();
     const { carte, image } = preparer(req.body ?? {});
     const date = maintenant().toISOString();
     const id = transaction(db, () => {
-      if (compterCartes.get(req.utilisateur.id).n >= LIMITE_CARTES) {
-        throw new ErreurClient(`Tu as déjà ${LIMITE_CARTES} cartes : c’est le maximum pour cette phase.`, 409);
+      if (config.limiteCartes > 0 && compterCartes.get(req.utilisateur.id).n >= config.limiteCartes) {
+        throw new ErreurClient(`Tu as déjà ${config.limiteCartes} cartes : c’est le maximum fixé par l’organisation.`, 409);
       }
       return db
         .prepare(
@@ -170,7 +170,7 @@ export function routesCartes({ db, config, maintenant }) {
     res.status(201).json(formaterCarte(lireCarte.get(Number(id)), req.utilisateur.id));
   });
 
-  r.put('/cartes/:id', exigerCertificat, (req, res) => {
+  r.put('/cartes/:id', exigerEditeur, (req, res) => {
     exigerCampagneOuverte();
     const actuelle = cartePerso(req);
     if (actuelle.statut === 'masquee') {
@@ -200,7 +200,7 @@ export function routesCartes({ db, config, maintenant }) {
   });
 
   // Supprimer reste possible après la campagne : c'est le droit de retrait de l'auteur.
-  r.delete('/cartes/:id', exigerCertificat, (req, res) => {
+  r.delete('/cartes/:id', exigerEditeur, (req, res) => {
     const carte = cartePerso(req);
     db.prepare('DELETE FROM cartes WHERE id = ?').run(carte.id);
     res.json({ ok: true });

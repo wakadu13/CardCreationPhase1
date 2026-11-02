@@ -38,7 +38,9 @@ export function routesCompte({ db, config, maintenant }) {
       identifiant: u.identifiant,
       nomComplet: u.nomComplet,
       certificatValide: u.certificatValide,
+      role: u.role,
       estAdmin: u.estAdmin,
+      estEditeur: u.estEditeur,
       doitChangerMdp: u.doitChangerMdp,
       nbCartes: nbCartes.get(u.id).n,
     };

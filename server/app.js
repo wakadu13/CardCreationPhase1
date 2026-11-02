@@ -2,17 +2,17 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { VERSION_CERTIFICAT } from '../shared/certificat.js';
-import { LIMITE_CARTES } from '../shared/regles.js';
 import { chargerUtilisateur } from './auth.js';
 import { chargerParametres, statutCampagne } from './config.js';
 import { gestionnaireErreurs } from './erreurs.js';
 import { routesAdmin } from './routes/admin.js';
 import { routesCartes } from './routes/cartes.js';
 import { routesCompte } from './routes/compte.js';
+import { routesLogos, urlsLogos } from './routes/logos.js';
 import { chargerTextes, textesEffectifs } from './textes.js';
 
 const RACINE = fileURLToPath(new URL('..', import.meta.url));
-const POLICES = ['barlow', 'barlow-condensed', 'saira-stencil-one', 'share-tech-mono'];
+const POLICES = ['barlow', 'barlow-condensed', 'pixelify-sans', 'share-tech-mono'];
 
 function entetesSecurite(_req, res, next) {
   res.set({
@@ -93,7 +93,8 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
         statut: statutCampagne(config, maintenant()),
       },
       demo: config.demo,
-      limiteCartes: LIMITE_CARTES,
+      limiteCartes: config.limiteCartes,
+      logos: urlsLogos(db),
       seuilSignalements: config.seuilSignalements,
       versionCertificat: VERSION_CERTIFICAT,
       utilisateur: compte.profil(req.utilisateur),
@@ -103,6 +104,7 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
   api.use(compte.router);
   api.use(routesCartes(ctx));
   api.use(routesAdmin(ctx));
+  api.use(routesLogos(ctx));
   api.use((_req, res) => res.status(404).json({ erreur: 'Route inconnue.' }));
   api.use(gestionnaireErreurs);
 

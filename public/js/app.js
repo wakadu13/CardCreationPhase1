@@ -1,21 +1,22 @@
 import { api } from './api.js';
 import { etat, formatRebours, rafraichirEtat, statutCampagne, utilisateur } from './etat.js';
 import { html, monter } from './html.js';
-import { icone, logo } from './icones.js';
+import { icone, logo, logosEcole } from './icones.js';
 import { enLigne, texte } from './textes.js';
 import { chargement, toast } from './ui.js';
 
-// acces : public · premier-vol (mot de passe provisoire) · connexion · certificat (participant) · admin
+// acces : public · premier-vol (mot de passe provisoire) · connexion · certificat (signé) · editeur (cartes) · admin
 const ROUTES = [
   { motif: /^\/$/, page: 'accueil', acces: 'public' },
   { motif: /^\/regles$/, page: 'regles', acces: 'public' },
   { motif: /^\/premier-vol$/, page: 'premier-vol', acces: 'premier-vol' },
   { motif: /^\/certificat$/, page: 'certificat', acces: 'connexion' },
   { motif: /^\/compte$/, page: 'compte', acces: 'connexion' },
-  { motif: /^\/hangar$/, page: 'hangar', acces: 'certificat' },
-  { motif: /^\/atelier(?:\/(\d+))?$/, page: 'atelier', acces: 'certificat' },
+  { motif: /^\/hangar$/, page: 'hangar', acces: 'editeur' },
+  { motif: /^\/atelier(?:\/(\d+))?$/, page: 'atelier', acces: 'editeur' },
   { motif: /^\/galerie$/, page: 'galerie', acces: 'certificat' },
   { motif: /^\/registre$/, page: 'registre', acces: 'certificat' },
+  { motif: /^\/combat$/, page: 'combat', acces: 'public' },
   { motif: /^\/admin(?:\/(comptes|signalements|cartes|parametres|personnalisation))?$/, page: 'admin', acces: 'admin' },
 ];
 
@@ -24,7 +25,8 @@ function accueilDe(u) {
   if (!u) return '/';
   if (u.doitChangerMdp) return '/premier-vol';
   if (u.estAdmin) return '/admin';
-  return u.certificatValide ? '/hangar' : '/certificat';
+  if (!u.certificatValide) return '/certificat';
+  return u.estEditeur ? '/hangar' : '/galerie';
 }
 
 let nettoyage = null;
@@ -60,8 +62,13 @@ function rendreBarre(pageActive = ROUTES.find((r) => r.motif.test(cheminCourant(
   } else if (u.doitChangerMdp) {
     liens = [lienNav('/premier-vol', 'Premier vol', pageActive), lienNav('/regles', 'Règles', pageActive), deconnexion];
   } else if (u.estAdmin) {
+    // Un organisateur peut aussi concevoir des cartes, une fois son certificat signé.
     liens = [
       lienNav('/admin', 'Organisation', pageActive),
+      u.certificatValide
+        ? lienNav('/hangar', 'Mes cartes', pageActive, html`<span class="nav__badge">${u.nbCartes}</span>`)
+        : lienNav('/certificat', 'Certificat', pageActive),
+      lienNav('/galerie', 'Galerie', pageActive),
       lienNav('/regles', 'Règles', pageActive),
       lienNav('/compte', 'Compte', pageActive),
       deconnexion,
@@ -71,16 +78,17 @@ function rendreBarre(pageActive = ROUTES.find((r) => r.motif.test(cheminCourant(
       lienNav('/certificat', 'Certificat', pageActive),
       lienNav('/regles', 'Règles', pageActive),
       lienNav('/compte', 'Compte', pageActive),
-      html`<button type="button" class="nav__lien" data-deconnexion>Déconnexion</button>`,
+      deconnexion,
     ];
   } else {
     liens = [
-      lienNav('/hangar', 'Hangar', pageActive, html`<span class="nav__badge">${u.nbCartes}/${s.limiteCartes}</span>`),
+      u.estEditeur &&
+        lienNav('/hangar', 'Mes cartes', pageActive, html`<span class="nav__badge">${u.nbCartes}${s.limiteCartes > 0 ? `/${s.limiteCartes}` : ''}</span>`),
       lienNav('/galerie', 'Galerie', pageActive),
       lienNav('/registre', 'Registre', pageActive),
       lienNav('/regles', 'Règles', pageActive),
       lienNav('/compte', 'Compte', pageActive),
-      html`<button type="button" class="nav__lien" data-deconnexion>Déconnexion</button>`,
+      deconnexion,
     ];
   }
   monter(
@@ -89,6 +97,7 @@ function rendreBarre(pageActive = ROUTES.find((r) => r.motif.test(cheminCourant(
         ${logo()}
         <span><span class="marque__nom">${s.nomJeu}</span><span class="marque__sous">${texte('slogan')}</span></span>
       </a>
+      ${logosEcole({ classe: 'logos-ecole--entete' })}
       <button type="button" class="btn btn--secondaire btn--petit nav__menu" aria-expanded="false" aria-controls="nav" data-menu>
         ${icone('menu')}<span class="sr-only">Menu</span>
       </button>
@@ -160,7 +169,8 @@ async function afficherRoute() {
           ? route.acces === 'premier-vol'
           : route.acces === 'connexion' ||
             (route.acces === 'admin' && u.estAdmin) ||
-            (route.acces === 'certificat' && !u.estAdmin && u.certificatValide);
+            (route.acces === 'certificat' && u.certificatValide) ||
+            (route.acces === 'editeur' && u.estEditeur && u.certificatValide);
     if (!autorise && chemin !== arrivee) return naviguer(arrivee);
   }
 

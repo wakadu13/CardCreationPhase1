@@ -29,3 +29,24 @@ export async function preparerImage(fichier) {
   }
   return url;
 }
+
+// Prépare un logo : réduit à 480 px de haut maximum, en PNG pour garder la transparence.
+export async function preparerLogo(fichier) {
+  if (!fichier.type.startsWith('image/')) throw new Error('Choisis un fichier image (PNG de préférence, fond transparent).');
+  if (fichier.size > 10 * 1024 * 1024) throw new Error('Image trop lourde (10 Mo maximum).');
+  let source;
+  try {
+    source = await createImageBitmap(fichier);
+  } catch {
+    throw new Error('Impossible de lire cette image. Essaie un PNG.');
+  }
+  const ratio = Math.min(1, 480 / source.height, 1200 / source.width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(source.width * ratio));
+  canvas.height = Math.max(1, Math.round(source.height * ratio));
+  canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
+  source.close?.();
+  const url = canvas.toDataURL('image/png');
+  if (url.length * 0.75 > 1_300_000) throw new Error('Logo trop lourd une fois réduit : utilise une image plus simple.');
+  return url;
+}

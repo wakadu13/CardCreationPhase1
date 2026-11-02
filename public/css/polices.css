@@ -8,5 +8,8 @@
 @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 500; font-display: swap; src: url('/polices/barlow-condensed/barlow-condensed-latin-500-normal.woff2') format('woff2'); }
 @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 600; font-display: swap; src: url('/polices/barlow-condensed/barlow-condensed-latin-600-normal.woff2') format('woff2'); }
 @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 700; font-display: swap; src: url('/polices/barlow-condensed/barlow-condensed-latin-700-normal.woff2') format('woff2'); }
-@font-face { font-family: 'Saira Stencil One'; font-style: normal; font-weight: 400; font-display: swap; src: url('/polices/saira-stencil-one/saira-stencil-one-latin-400-normal.woff2') format('woff2'); }
 @font-face { font-family: 'Share Tech Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/polices/share-tech-mono/share-tech-mono-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Pixelify Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('/polices/pixelify-sans/pixelify-sans-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Pixelify Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url('/polices/pixelify-sans/pixelify-sans-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Pixelify Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('/polices/pixelify-sans/pixelify-sans-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Pixelify Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url('/polices/pixelify-sans/pixelify-sans-latin-700-normal.woff2') format('woff2'); }

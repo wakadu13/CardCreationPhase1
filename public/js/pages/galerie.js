@@ -1,7 +1,7 @@
 import { BONUS_AVANTAGE, FILIERES, MOTIFS_SIGNALEMENT, avantageContre, faiblesseContre, filiere } from '/shared/regles.js';
 import { api } from '../api.js';
 import { rendreCarte, rendreInclinable } from '../carte.js';
-import { etat, formatDate, statutCampagne } from '../etat.js';
+import { etat, formatDate, statutCampagne, utilisateur } from '../etat.js';
 import { html, monter } from '../html.js';
 import { icone } from '../icones.js';
 import { enBloc } from '../textes.js';
@@ -140,7 +140,7 @@ export async function afficher(racine) {
             <label for="gal-tri" class="sr-only">Trier</label>
             <select id="gal-tri">${Object.entries(TRIS).map(([k, t]) => html`<option value="${k}">${t.nom}</option>`)}</select>
           </div>
-          <label class="case case--compacte"><input type="checkbox" id="gal-miennes" /><span>Mes cartes</span></label>
+          ${utilisateur().estEditeur && html`<label class="case case--compacte"><input type="checkbox" id="gal-miennes" /><span>Mes cartes</span></label>`}
         </div>
       </div>
       <p class="resultat-galerie mono" aria-live="polite"></p>
@@ -211,7 +211,7 @@ export async function afficher(racine) {
     filtres.tri = ev.target.value;
     rendreGrille();
   });
-  racine.querySelector('#gal-miennes').addEventListener('change', (ev) => {
+  racine.querySelector('#gal-miennes')?.addEventListener('change', (ev) => {
     filtres.miennes = ev.target.checked;
     rendreGrille();
   });

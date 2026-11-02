@@ -2,7 +2,7 @@ import { actualiser, naviguer } from '../app.js';
 import { api } from '../api.js';
 import { etat, formatDate, utilisateur } from '../etat.js';
 import { html, monter, raw } from '../html.js';
-import { icone } from '../icones.js';
+import { icone, logosEcole } from '../icones.js';
 import { enBloc } from '../textes.js';
 import { pendant, toast } from '../ui.js';
 
@@ -31,6 +31,7 @@ function enteteDocument(sousTitre) {
       <h2 class="document__titre">Certificat de consentement</h2>
       <p class="document__version mono">${sousTitre}</p>
     </div>
+    ${logosEcole({ classe: 'logos-ecole--document' })}
   </div>`;
 }
 
