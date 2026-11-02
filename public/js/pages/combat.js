@@ -29,6 +29,7 @@ export function afficher(racine) {
         </div>
         <div class="groupe-boutons">
           <a class="btn" href="#/combat/jouer">Essayer le simulateur</a>
+          <button type="button" class="btn btn--secondaire sans-impression" data-imprimer>${icone('imprimer')} Imprimer (A4)</button>
           <a class="btn btn--secondaire" href="#/regles">${icone('retour')} Règles</a>
         </div>
       </div>
@@ -116,4 +117,5 @@ export function afficher(racine) {
         </section>
       </div>`,
   );
+  racine.querySelector('[data-imprimer]').addEventListener('click', () => window.print());
 }

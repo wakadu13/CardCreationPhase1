@@ -12,7 +12,8 @@
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
     "test": "node --disable-warning=ExperimentalWarning --test",
-    "compte-admin": "node --disable-warning=ExperimentalWarning server/compte-admin.js"
+    "compte-admin": "node --disable-warning=ExperimentalWarning server/compte-admin.js",
+    "equilibrage": "node --disable-warning=ExperimentalWarning scripts/equilibrage.js"
   },
   "dependencies": {
     "@fontsource/barlow": "5.2.8",

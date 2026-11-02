@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS cartes (
   statut TEXT NOT NULL DEFAULT 'visible' CHECK (statut IN ('visible', 'masquee')),
   -- 'auto' (seuil de signalements atteint) ou 'organisation'
   masquee_par TEXT,
+  -- 1 tant qu'un second éditeur n'a pas validé la carte (relecture avant publication)
+  en_relecture INTEGER NOT NULL DEFAULT 0,
   cree_le TEXT NOT NULL,
   modifie_le TEXT NOT NULL
 );
@@ -78,6 +80,17 @@ CREATE TABLE IF NOT EXISTS textes (
   valeur TEXT NOT NULL
 );
 
+-- Historique des actions (organisation, validation des cartes)
+CREATE TABLE IF NOT EXISTS journal (
+  id INTEGER PRIMARY KEY,
+  date TEXT NOT NULL,
+  acteur_id INTEGER,
+  acteur TEXT NOT NULL,
+  action TEXT NOT NULL,
+  cible TEXT NOT NULL DEFAULT '',
+  detail TEXT NOT NULL DEFAULT ''
+);
+
 -- Logos téléversés par les organisateurs (ema, ecole)
 CREATE TABLE IF NOT EXISTS logos (
   cle TEXT PRIMARY KEY,
@@ -101,6 +114,7 @@ function migrer(db) {
   }
   const colonnesCartes = new Set(db.prepare('PRAGMA table_info(cartes)').all().map((c) => c.name));
   if (!colonnesCartes.has('masquee_par')) db.exec('ALTER TABLE cartes ADD COLUMN masquee_par TEXT');
+  if (!colonnesCartes.has('en_relecture')) db.exec('ALTER TABLE cartes ADD COLUMN en_relecture INTEGER NOT NULL DEFAULT 0');
 
   // Le rôle « editeur » n'existait pas : la contrainte de la table doit être refaite (SQLite ne
   // modifie pas une contrainte en place). Les données sont recopiées telles quelles.

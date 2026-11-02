@@ -20,8 +20,8 @@ import {
 import { actualiser, naviguer } from '../app.js';
 import { api } from '../api.js';
 import { rendreCarte, rendreInclinable } from '../carte.js';
-import { etat, statutCampagne, utilisateur } from '../etat.js';
-import { html, monter, raw } from '../html.js';
+import { etat, formatDate, statutCampagne, utilisateur } from '../etat.js';
+import { fragment, html, monter, raw } from '../html.js';
 import { icone } from '../icones.js';
 import { preparerImage } from '../image.js';
 import { enBloc } from '../textes.js';
@@ -329,6 +329,25 @@ export async function afficher(racine, id) {
   let modifie = false;
   const u = utilisateur();
 
+  // Brouillon : sauvegardé dans le navigateur à chaque modification, proposé au retour.
+  const cleBrouillon = `as-de-salon:brouillon:${u.identifiant}:${id ?? 'nouvelle'}`;
+  let brouillon = null;
+  let minuteurBrouillon = null;
+  try {
+    brouillon = JSON.parse(localStorage.getItem(cleBrouillon) ?? 'null');
+  } catch {}
+  const enregistrerBrouillon = () => {
+    try {
+      localStorage.setItem(cleBrouillon, JSON.stringify({ ...b, image: b.imageModifiee ? b.image : undefined, date: new Date().toISOString() }));
+    } catch {}
+  };
+  const effacerBrouillon = () => {
+    clearTimeout(minuteurBrouillon);
+    try {
+      localStorage.removeItem(cleBrouillon);
+    } catch {}
+  };
+
   monter(
     racine,
     html`<div class="entete-page">
@@ -339,6 +358,14 @@ export async function afficher(racine, id) {
         </div>
         <a class="btn btn--secondaire" href="#/hangar">${icone('retour')} Hangar</a>
       </div>
+      ${brouillon &&
+      html`<div class="barre-brouillon panneau" data-barre-brouillon>
+        <span>${icone('crayon')} Un brouillon non enregistré du ${formatDate(brouillon.date)} a été retrouvé.</span>
+        <div class="groupe-boutons">
+          <button type="button" class="btn btn--petit" data-reprendre>Reprendre le brouillon</button>
+          <button type="button" class="btn btn--petit btn--secondaire" data-ignorer>Ignorer</button>
+        </div>
+      </div>`}
       <form class="atelier" novalidate>
         ${formulaire(b, id ? 'Enregistrer les modifications' : 'Enregistrer la carte')}
         <div class="atelier__cote">
@@ -378,7 +405,65 @@ export async function afficher(racine, id) {
     img.style.objectPosition = `${b.imageX}% ${b.imageY}%`;
     img.style.transformOrigin = `${b.imageX}% ${b.imageY}%`;
     img.style.transform = `scale(${b.imageZoom})`;
+    for (const nom of ['imageX', 'imageY', 'imageZoom']) {
+      const curseur = form.querySelector(`[name="${nom}"]`);
+      if (curseur) curseur.value = String(b[nom]);
+    }
   }
+
+  // Recadrage directement sur l'aperçu : glisser pour déplacer, molette ou pincement pour zoomer.
+  const borne = (v, min, max) => Math.min(max, Math.max(min, v));
+  const doigts = new Map();
+  let ecartInitial = 0;
+  apercu.addEventListener('pointerdown', (ev) => {
+    if (!b.image || !ev.target.closest('.carte__visuel')) return;
+    ev.preventDefault();
+    doigts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    apercu.setPointerCapture(ev.pointerId);
+    if (doigts.size === 2) {
+      const [a, c] = [...doigts.values()];
+      ecartInitial = Math.hypot(a.x - c.x, a.y - c.y) / b.imageZoom;
+    }
+  });
+  apercu.addEventListener('pointermove', (ev) => {
+    const d = doigts.get(ev.pointerId);
+    if (!d) return;
+    const visuel = apercu.querySelector('.carte__visuel');
+    const r = visuel.getBoundingClientRect();
+    if (doigts.size === 1) {
+      // Déplacer l'image dans le sens du doigt : le point focal va dans l'autre sens
+      b.imageX = borne(b.imageX - ((ev.clientX - d.x) / r.width) * 100 / b.imageZoom, 0, 100);
+      b.imageY = borne(b.imageY - ((ev.clientY - d.y) / r.height) * 100 / b.imageZoom, 0, 100);
+    }
+    doigts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (doigts.size === 2 && ecartInitial) {
+      const [a, c] = [...doigts.values()];
+      b.imageZoom = borne(Math.round((Math.hypot(a.x - c.x, a.y - c.y) / ecartInitial) * 20) / 20, CADRAGE.zoomMin, CADRAGE.zoomMax);
+    }
+    b.imageX = Math.round(b.imageX);
+    b.imageY = Math.round(b.imageY);
+    modifie = true;
+    majCadrage();
+  });
+  const finDoigt = (ev) => {
+    doigts.delete(ev.pointerId);
+    if (doigts.size < 2) ecartInitial = 0;
+    if (modifie) enregistrerBrouillon();
+  };
+  apercu.addEventListener('pointerup', finDoigt);
+  apercu.addEventListener('pointercancel', finDoigt);
+  apercu.addEventListener(
+    'wheel',
+    (ev) => {
+      if (!b.image || !ev.target.closest('.carte__visuel')) return;
+      ev.preventDefault();
+      b.imageZoom = borne(Math.round((b.imageZoom - Math.sign(ev.deltaY) * 0.1) * 20) / 20, CADRAGE.zoomMin, CADRAGE.zoomMax);
+      modifie = true;
+      majCadrage();
+      enregistrerBrouillon();
+    },
+    { passive: false },
+  );
 
   const redessiner = (section) => {
     const el = form.querySelector(`[data-section="${section}"]`);
@@ -389,6 +474,8 @@ export async function afficher(racine, id) {
     const { name, value, type } = ev.target;
     if (!name || name === 'fichier') return;
     modifie = true;
+    clearTimeout(minuteurBrouillon);
+    minuteurBrouillon = setTimeout(enregistrerBrouillon, 400);
     if (name === 'confirmeSignataires') return majApercu();
 
     const compteur = form.querySelector(`[data-compteur="${CSS.escape(name)}"]`);
@@ -436,10 +523,30 @@ export async function afficher(racine, id) {
       modifie = true;
       redessiner('illustration');
       majApercu();
+      enregistrerBrouillon();
     } catch (err) {
       toast(err.message, 'erreur');
     }
   }
+
+  // Barre « brouillon retrouvé »
+  racine.querySelector('[data-reprendre]')?.addEventListener('click', () => {
+    const { date, image, ...reste } = brouillon;
+    Object.assign(b, reste);
+    if (image) {
+      b.image = image;
+      b.imageModifiee = true;
+    }
+    modifie = true;
+    form.querySelector('.atelier__formulaire').replaceWith(fragment(formulaire(b, id ? 'Enregistrer les modifications' : 'Enregistrer la carte')));
+    racine.querySelector('[data-barre-brouillon]')?.remove();
+    majApercu();
+    toast('Brouillon repris.');
+  });
+  racine.querySelector('[data-ignorer]')?.addEventListener('click', () => {
+    effacerBrouillon();
+    racine.querySelector('[data-barre-brouillon]')?.remove();
+  });
 
   form.addEventListener('change', (ev) => {
     if (ev.target.name === 'fichier') chargerFichier(ev.target.files?.[0]);
@@ -505,8 +612,15 @@ export async function afficher(racine, id) {
       try {
         await api(id ? `/cartes/${id}` : '/cartes', { methode: id ? 'PUT' : 'POST', corps });
         modifie = false;
+        effacerBrouillon();
         await actualiser();
-        toast(id ? 'Carte mise à jour.' : 'Carte enregistrée dans ton hangar !');
+        toast(
+          etat.serveur.relecture
+            ? 'Carte enregistrée. Elle sera visible de tous dès qu’un autre éditeur l’aura validée.'
+            : id
+              ? 'Carte mise à jour.'
+              : 'Carte enregistrée !',
+        );
         naviguer('/hangar');
       } catch (err) {
         erreur.textContent = err.message;

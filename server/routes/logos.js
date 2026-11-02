@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { exigerAdmin } from '../auth.js';
 import { ErreurClient } from '../erreurs.js';
+import { journaliser } from '../journal.js';
 import { lireImage } from './cartes.js';
 
 // Logos affichés sur le site (en-tête, accueil, certificat), téléversés par les organisateurs.
@@ -41,6 +42,7 @@ export function routesLogos({ db, maintenant }) {
       `INSERT INTO logos (cle, image, image_type, modifie_le) VALUES (?, ?, ?, ?)
        ON CONFLICT (cle) DO UPDATE SET image = excluded.image, image_type = excluded.image_type, modifie_le = excluded.modifie_le`,
     ).run(req.params.cle, image.image, image.type, maintenant().toISOString());
+    journaliser(db, req, 'logo', { cible: req.params.cle }, maintenant());
     res.json({ logos: urlsLogos(db) });
   });
 

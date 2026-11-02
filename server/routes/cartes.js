@@ -4,9 +4,10 @@ import { exigerCertificat, exigerEditeur, exigerLecture } from '../auth.js';
 import { statutCampagne } from '../config.js';
 import { transaction } from '../db.js';
 import { ErreurClient, idParam } from '../erreurs.js';
+import { journaliser } from '../journal.js';
 
 export const COLONNES = `c.id, c.auteur_id, c.nom, c.sous_titre, c.filiere, c.pv, c.description, c.attaques,
-  c.image IS NOT NULL AS a_image, c.image_x, c.image_y, c.image_zoom, c.statut, c.masquee_par, c.cree_le, c.modifie_le,
+  c.image IS NOT NULL AS a_image, c.image_x, c.image_y, c.image_zoom, c.statut, c.masquee_par, c.en_relecture, c.cree_le, c.modifie_le,
   u.identifiant AS auteur`;
 
 export function formaterCarte(l, viewerId, extra = {}) {
@@ -25,6 +26,7 @@ export function formaterCarte(l, viewerId, extra = {}) {
     auteur: l.auteur,
     estAMoi: l.auteur_id === viewerId,
     statut: l.statut,
+    enRelecture: l.en_relecture === 1,
     masqueePar: l.statut === 'masquee' ? (l.masquee_par ?? 'auto') : null,
     creeLe: l.cree_le,
     modifieLe: l.modifie_le,
@@ -73,11 +75,14 @@ export function routesCartes({ db, config, maintenant }) {
     if (statut === 'terminee') throw new ErreurClient('La campagne de création est terminée.', 403);
   }
 
-  // Carte lisible par l'utilisateur : visible, ou bien la sienne, ou bien vue par un organisateur.
+  // Carte lisible par l'utilisateur : publiée, ou bien la sienne, ou bien vue par un éditeur
+  // (brouillons en relecture) ou un organisateur (tout).
   function carteAccessible(req) {
     const ligne = lireCarte.get(idParam(req));
     if (!ligne) throw new ErreurClient('Carte introuvable.', 404);
-    const autorise = ligne.statut === 'visible' || ligne.auteur_id === req.utilisateur.id || req.utilisateur.estAdmin;
+    const publiee = ligne.statut === 'visible' && ligne.en_relecture === 0;
+    const enRelecture = ligne.statut === 'visible' && ligne.en_relecture === 1 && req.utilisateur.estEditeur;
+    const autorise = publiee || enRelecture || ligne.auteur_id === req.utilisateur.id || req.utilisateur.estAdmin;
     if (!autorise) throw new ErreurClient('Carte introuvable.', 404);
     return ligne;
   }
@@ -97,16 +102,16 @@ export function routesCartes({ db, config, maintenant }) {
     return { carte, cout, image: lireImage(body.image) };
   }
 
-  // Galerie : toutes les cartes visibles, plus les miennes (même masquées).
+  // Galerie : les cartes publiées, plus les miennes (même masquées), plus les brouillons pour les éditeurs.
   r.get('/cartes', exigerLecture, (req, res) => {
     const lignes = db
       .prepare(
         `SELECT ${COLONNES}, EXISTS (SELECT 1 FROM signalements s WHERE s.carte_id = c.id AND s.auteur_id = ?) AS signalee
          FROM cartes c JOIN utilisateurs u ON u.id = c.auteur_id
-         WHERE c.statut = 'visible' OR c.auteur_id = ?
+         WHERE (c.statut = 'visible' AND (c.en_relecture = 0 OR ?)) OR c.auteur_id = ?
          ORDER BY c.id DESC`,
       )
-      .all(req.utilisateur.id, req.utilisateur.id);
+      .all(req.utilisateur.id, req.utilisateur.estEditeur ? 1 : 0, req.utilisateur.id);
     res.json(lignes.map((l) => formaterCarte(l, req.utilisateur.id, { signaleeParMoi: Boolean(l.signalee) })));
   });
 
@@ -147,8 +152,8 @@ export function routesCartes({ db, config, maintenant }) {
       return db
         .prepare(
           `INSERT INTO cartes (auteur_id, nom, sous_titre, filiere, pv, description, attaques, image, image_type,
-             image_x, image_y, image_zoom, cree_le, modifie_le)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             image_x, image_y, image_zoom, en_relecture, cree_le, modifie_le)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           req.utilisateur.id,
@@ -163,11 +168,46 @@ export function routesCartes({ db, config, maintenant }) {
           carte.imageX,
           carte.imageY,
           carte.imageZoom,
+          config.relecture ? 1 : 0,
           date,
           date,
         ).lastInsertRowid;
     });
     res.status(201).json(formaterCarte(lireCarte.get(Number(id)), req.utilisateur.id));
+  });
+
+  // Copie d'une carte accessible, à mon nom, pour en faire une variante.
+  r.post('/cartes/:id/dupliquer', exigerEditeur, (req, res) => {
+    exigerCampagneOuverte();
+    const source = carteAccessible(req);
+    const date = maintenant().toISOString();
+    const nom = `${source.nom} (copie)`.slice(0, 32);
+    const id = transaction(db, () => {
+      if (config.limiteCartes > 0 && compterCartes.get(req.utilisateur.id).n >= config.limiteCartes) {
+        throw new ErreurClient(`Tu as déjà ${config.limiteCartes} cartes : c’est le maximum fixé par l’organisation.`, 409);
+      }
+      return db
+        .prepare(
+          `INSERT INTO cartes (auteur_id, nom, sous_titre, filiere, pv, description, attaques, image, image_type,
+             image_x, image_y, image_zoom, en_relecture, cree_le, modifie_le)
+           SELECT ?, ?, sous_titre, filiere, pv, description, attaques, image, image_type, image_x, image_y, image_zoom, ?, ?, ?
+           FROM cartes WHERE id = ?`,
+        )
+        .run(req.utilisateur.id, nom, config.relecture ? 1 : 0, date, date, source.id).lastInsertRowid;
+    });
+    res.status(201).json(formaterCarte(lireCarte.get(Number(id)), req.utilisateur.id));
+  });
+
+  // Relecture : un second éditeur (ou un organisateur) valide la carte, qui devient visible de tous.
+  r.post('/cartes/:id/valider', exigerEditeur, (req, res) => {
+    const carte = carteAccessible(req);
+    if (carte.en_relecture !== 1) throw new ErreurClient('Cette carte n’est pas en relecture.', 409);
+    if (carte.auteur_id === req.utilisateur.id && !req.utilisateur.estAdmin) {
+      throw new ErreurClient('Une carte doit être validée par un autre éditeur que son auteur.', 403);
+    }
+    db.prepare('UPDATE cartes SET en_relecture = 0 WHERE id = ?').run(carte.id);
+    journaliser(db, req, 'carte.validee', { cible: `#${carte.id} ${carte.nom}`, detail: `auteur @${carte.auteur}` }, maintenant());
+    res.json(formaterCarte(lireCarte.get(carte.id), req.utilisateur.id));
   });
 
   r.put('/cartes/:id', exigerEditeur, (req, res) => {
@@ -179,9 +219,10 @@ export function routesCartes({ db, config, maintenant }) {
     const { carte, image } = preparer(req.body ?? {});
     // Horodatage strictement croissant : il sert aussi de version pour le cache de l'image.
     const date = new Date(Math.max(maintenant().getTime(), Date.parse(actuelle.modifie_le) + 1)).toISOString();
+    // Une carte modifiée repasse en relecture (si la relecture est activée).
     db.prepare(
       `UPDATE cartes SET nom = ?, sous_titre = ?, filiere = ?, pv = ?, description = ?, attaques = ?,
-         image_x = ?, image_y = ?, image_zoom = ?, modifie_le = ? WHERE id = ?`,
+         image_x = ?, image_y = ?, image_zoom = ?, modifie_le = ?, en_relecture = ? WHERE id = ?`,
     ).run(
       carte.nom,
       carte.sousTitre,
@@ -193,6 +234,7 @@ export function routesCartes({ db, config, maintenant }) {
       carte.imageY,
       carte.imageZoom,
       date,
+      config.relecture ? 1 : 0,
       actuelle.id,
     );
     if (image) db.prepare('UPDATE cartes SET image = ?, image_type = ? WHERE id = ?').run(image.image, image.type, actuelle.id);
@@ -210,6 +252,7 @@ export function routesCartes({ db, config, maintenant }) {
     const carte = carteAccessible(req);
     if (carte.auteur_id === req.utilisateur.id) throw new ErreurClient('Tu ne peux pas signaler ta propre carte.');
     if (carte.statut !== 'visible') throw new ErreurClient('Cette carte est déjà masquée.', 409);
+    if (carte.en_relecture === 1) throw new ErreurClient('Cette carte est encore en relecture.', 409);
     const { motif, commentaire } = req.body ?? {};
     if (!MOTIFS_SIGNALEMENT.some((m) => m.id === motif)) throw new ErreurClient('Choisis un motif de signalement.');
     const texte = String(commentaire ?? '').replace(/\s+/g, ' ').trim().slice(0, 300);
@@ -234,12 +277,13 @@ export function routesCartes({ db, config, maintenant }) {
 
   r.get('/stats', exigerLecture, (_req, res) => {
     const parFiliere = Object.fromEntries(FILIERES.map((f) => [f.id, 0]));
-    for (const l of db.prepare(`SELECT filiere, COUNT(*) AS n FROM cartes WHERE statut = 'visible' GROUP BY filiere`).all()) {
+    for (const l of db.prepare(`SELECT filiere, COUNT(*) AS n FROM cartes WHERE statut = 'visible' AND en_relecture = 0 GROUP BY filiere`).all()) {
       parFiliere[l.filiere] = l.n;
     }
     res.json({
       cartes: Object.values(parFiliere).reduce((s, n) => s + n, 0),
-      createurs: db.prepare(`SELECT COUNT(DISTINCT auteur_id) AS n FROM cartes WHERE statut = 'visible'`).get().n,
+      createurs: db.prepare(`SELECT COUNT(DISTINCT auteur_id) AS n FROM cartes WHERE statut = 'visible' AND en_relecture = 0`).get().n,
+      enRelecture: db.prepare(`SELECT COUNT(*) AS n FROM cartes WHERE statut = 'visible' AND en_relecture = 1`).get().n,
       signataires: db.prepare('SELECT COUNT(*) AS n FROM certificats').get().n,
       parFiliere,
     });

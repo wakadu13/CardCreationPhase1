@@ -9,8 +9,8 @@ Design façon **Balatro** (tapis de jeu, écran CRT, typo pixel, boutons en reli
 | ![Accueil](docs/apercus/accueil.jpg) | ![Atelier](docs/apercus/atelier.jpg) |
 | **Galerie** | **Organisation : comptes et rôles** |
 | ![Galerie](docs/apercus/galerie.jpg) | ![Comptes](docs/apercus/organisation-comptes.jpg) |
-| **Simulateur de combat** | **Cycle des filières** |
-| ![Simulateur](docs/apercus/simulateur.jpg) | ![Cycle](docs/apercus/cycle.jpg) |
+| **Simulateur de combat (duel)** | **Relecture d’une carte** |
+| ![Simulateur](docs/apercus/simulateur.jpg) | ![Relecture](docs/apercus/relecture.jpg) |
 
 ## Ce que fait le site
 
@@ -23,7 +23,8 @@ Design façon **Balatro** (tapis de jeu, écran CRT, typo pixel, boutons en reli
 - **Pas d’inscription libre** : on se connecte avec les identifiants donnés par les organisateurs, puis on choisit son propre mot de passe à la première connexion.
 - **Certificat de consentement obligatoire** avant de créer ou de voir la moindre carte : six engagements à cocher, au nom enregistré par les organisateurs. Le certificat est numéroté et imprimable.
 - **Registre des signataires** : la liste des personnes qu’on a le droit de mettre en scène sur une carte.
-- **Atelier** (éditeurs) : nom, sous-titre, filière, PV, illustration (recadrage et zoom), 1 ou 2 attaques, description. Aperçu en direct, jauge de puissance et « check-list prévol ».
+- **Atelier** (éditeurs) : nom, sous-titre, filière, PV, illustration (recadrage à la souris ou au doigt directement sur l’aperçu, zoom à la molette ou au pincement), 1 ou 2 attaques, description. Aperçu en direct, jauge de puissance et « check-list prévol ». Le **brouillon** est sauvegardé dans le navigateur : si l’onglet se ferme, la carte en cours est proposée au retour. Une carte existante se **duplique** pour en faire une variante.
+- **Relecture avant publication** (activée par défaut, réglable dans Paramètres) : une carte nouvelle ou modifiée n’est visible que des éditeurs, marquée « À relire », jusqu’à ce qu’un **autre** éditeur (ou un organisateur) la valide depuis la galerie.
 - **Galerie** avec filtres par filière, recherche, tri, et un bouton **Signaler** sur chaque carte. Chaque carte se retourne (dos aux couleurs du jeu) et se télécharge en **image PNG** haute définition, pour imprimer un vrai paquet.
 - **Hangar** : ses propres cartes, compte à rebours de la campagne, statistiques par filière.
 - **Retrait du consentement** : supprimer son compte efface ses cartes, ses signalements et son certificat.
@@ -32,7 +33,10 @@ Design façon **Balatro** (tapis de jeu, écran CRT, typo pixel, boutons en reli
 - **Comptes** : création d’un ou plusieurs comptes en collant une liste de noms (« Prénom Nom », un par ligne), avec le rôle choisi ; le rôle de chacun se change ensuite dans la liste. L’identifiant est généré automatiquement (camille.martin) et chaque compte reçoit un mot de passe provisoire. On peut ensuite copier les identifiants, les télécharger en CSV ou **imprimer des fiches à découper et distribuer**. La liste des comptes montre qui s’est connecté, qui a signé et combien de cartes chacun a créées. Elle permet aussi de corriger un nom, de donner un nouveau mot de passe (en cas d’oubli) ou de supprimer un compte. On peut aussi créer d’autres comptes organisateurs.
 - **Signalements** : les cartes signalées, avec le motif, le commentaire et l’auteur de chaque signalement. Actions possibles : masquer, réafficher, classer les signalements, supprimer.
 - **Cartes** : toutes les cartes, avec filtres par filière et par statut, et les mêmes actions.
-- **Paramètres** : dates d’ouverture et de clôture de la campagne (bouton « ouvrir maintenant pour 7 jours »), seuil de masquage automatique, nom de la promo. Plus l’**export JSON** des cartes pour la phase 2.
+- **Paramètres** : dates d’ouverture et de clôture de la campagne (bouton « ouvrir maintenant pour 7 jours »), seuil de masquage automatique, limite de cartes, relecture, nom de la promo. Plus la **sauvegarde** et l’**export JSON** des cartes pour la phase 2.
+- **Cartes** : toutes les cartes, et un bouton **ZIP** qui exporte toutes les cartes publiées en PNG haute définition (face et dos), pour les faire imprimer d’un coup.
+- **Journal** : historique des actions (comptes créés, rôles, mots de passe, cartes masquées, rétablies, supprimées, validées, paramètres, textes, logos, sauvegardes), si une décision est contestée.
+- **Rappel de sauvegarde** : un bandeau en haut de l’espace organisateurs quand la dernière sauvegarde téléchargée date de plus de 24 h.
 - **Personnalisation** : les textes du site, modifiables sans toucher au code (voir plus bas), et les **logos** (EMA, École de l’air et de l’espace) à téléverser.
 
 ## Filières
@@ -78,7 +82,11 @@ Décrite sur la page **Combat** du site (`#/combat`) et dans `shared/combat.js`,
 - les **effets** des cartes deviennent des actions de main (récupérer une main, doubler le multiplicateur sur pile ou face…) ;
 - six mises par partie, dont deux **boss** avec une règle spéciale ; en duel, le premier à passer la mise gagne la manche.
 
-Un **simulateur solo** est jouable sur le site (`#/combat/jouer`, bouton « Essayer le simulateur ») : il applique ces règles avec les cartes de la promo (ou les cartes d’exemple sans connexion) et sert à régler les cibles des mises. Le calcul est dans `shared/combat.js` (`calculerMain`), testé.
+Un **simulateur** est jouable sur le site (`#/combat/jouer`, bouton « Essayer le simulateur ») : mode **solo** contre la mise, ou **duel à deux sur le même écran** (à tour de rôle sur la même mise, premier à 3 manches). Il applique ces règles avec les cartes de la promo (ou les cartes d’exemple sans connexion). Petits sons désactivables. Le déroulé est dans `shared/partie.js`, le calcul d’une main dans `shared/combat.js`, tous deux testés.
+
+**Régler les cibles** : `npm run equilibrage` (cartes d’exemple) ou `npm run equilibrage -- data/as-de-salon.sqlite` (vraies cartes) simule des milliers de parties d’un joueur automatique et propose des cibles pour viser ~60 % de parties gagnées. Les valeurs par défaut ont été calibrées sur les cartes d’exemple : à relancer avec les cartes de la promo avant la phase 2, puis à reporter dans `shared/combat.js`.
+
+Les pages **Règles** et **Combat** ont un bouton « Imprimer (A4) » pour la table de jeu.
 
 ## Signalements
 
@@ -210,7 +218,9 @@ Avec Render, la marche à suivre est notée en commentaire dans `render.yaml` : 
 ```
 shared/        Règles partagées navigateur + serveur
   regles.js      budget, filières et cycle, effets, validation d'une carte
-  combat.js      proposition de système de combat (phase 2)
+  combat.js      proposition de système de combat (phase 2) et calcul d'une main
+  partie.js      déroulé d'une partie (simulateur, joueur automatique)
+scripts/       equilibrage.js : calibrage des cibles par simulation
   textes.js      textes personnalisables et leurs valeurs d'origine
   certificat.js  texte et version du certificat de consentement
   exemples.js    cartes d'exemple (accueil, règles)

@@ -7,9 +7,9 @@ export const BUDGET = 100;
 
 // Les filières jouent le rôle des « types » Pokémon.
 export const FILIERES = [
-  { id: 'tesa', nom: 'TESA', domaine: 'Sciences techniques', couleur: '#d27a22', icone: 'cle' },
-  { id: 'ned', nom: 'NED', domaine: 'Sciences numériques', couleur: '#6a5acd', icone: 'puce' },
-  { id: 'egid', nom: 'EGID', domaine: 'Sciences sociales', couleur: '#2a9467', icone: 'groupe' },
+  { id: 'tesa', nom: 'TESA', domaine: 'Sciences techniques', couleur: '#d27a22', icone: 'cle', forme: 'carre' },
+  { id: 'ned', nom: 'NED', domaine: 'Sciences numériques', couleur: '#6a5acd', icone: 'puce', forme: 'losange' },
+  { id: 'egid', nom: 'EGID', domaine: 'Sciences sociales', couleur: '#2a9467', icone: 'groupe', forme: 'rond' },
 ];
 
 // Cycle des forces : chaque filière domine la suivante, comme pierre-feuille-ciseaux.

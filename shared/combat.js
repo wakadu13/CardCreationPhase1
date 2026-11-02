@@ -16,15 +16,16 @@ export const COMBAT = {
     defaussesParManche: 3,
     taillemain: 8,
     carteParMain: 'de 1 à 5 cartes',
+    // Cibles : rampe croissante, calibrée avec `npm run equilibrage` (à relancer avec les cartes de la promo).
     manches: [
-      { nom: 'Petite mise', cible: 300, ante: 1 },
-      { nom: 'Grande mise', cible: 450, ante: 1 },
-      { nom: 'Boss : le Colonel', cible: 600, ante: 1, regle: 'Les cartes de la filière du boss ne comptent pas leurs effets.' },
-      { nom: 'Petite mise', cible: 800, ante: 2 },
-      { nom: 'Grande mise', cible: 1200, ante: 2 },
-      { nom: 'Boss : la Revue', cible: 1600, ante: 2, regle: 'Une seule défausse pour toute la manche.' },
+      { nom: 'Petite mise', cible: 3000, ante: 1 },
+      { nom: 'Grande mise', cible: 3600, ante: 1 },
+      { nom: 'Boss : le Colonel', cible: 4200, ante: 1, regle: 'Les cartes de la filière du boss ne comptent pas leurs effets.' },
+      { nom: 'Petite mise', cible: 4800, ante: 2 },
+      { nom: 'Grande mise', cible: 5400, ante: 2 },
+      { nom: 'Boss : la Revue', cible: 6000, ante: 2, regle: 'Une seule défausse pour toute la manche.' },
     ],
-    victoire: 'En duel : les deux joueurs affrontent la même mise avec leur paquet ; le premier à la passer gagne la manche, le premier à 3 manches gagne la partie. En solo : passer les 6 mises.',
+    victoire: 'En duel : les deux joueurs affrontent la même mise avec leur paquet, à tour de rôle sur le même écran ; le premier à la passer gagne la manche, le premier à 3 manches gagne la partie. En solo : passer les 6 mises.',
   },
 
   // Calcul d'un score de main
@@ -80,7 +81,7 @@ export const COMBAT = {
 
   // Choix laissés à l'organisation
   reglages: [
-    'Les cibles des mises : à ajuster après quelques parties d’essai (viser ~60 % de réussite au début).',
+    'Les cibles des mises : calibrées par simulation (`npm run equilibrage data/as-de-salon.sqlite` avec les vraies cartes), objectif ~60 % de parties gagnées.',
     'Le nombre de cartes par paquet (20) et la taille du draft (5 visibles).',
     'Les bonus de combinaisons : des valeurs rondes, faciles à retenir au tableau.',
     'Un « joker » par joueur : une carte choisie dans son paquet dont l’effet s’applique à chaque main.',

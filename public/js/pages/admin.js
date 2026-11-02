@@ -10,6 +10,8 @@ const fragmentDe = (contenu) => fragment(contenu);
 import { icone } from '../icones.js';
 import { preparerLogo } from '../image.js';
 import { formater } from '../textes.js';
+import { rendreDos, capturerCarteEnPng } from '../carte.js';
+import { fabriquerZip, telechargerBlob } from '../zip.js';
 import { confirmer, ouvrirDialogue, pendant, toast } from '../ui.js';
 
 export const titre = 'Organisation';
@@ -28,6 +30,7 @@ const ONGLETS = [
   { id: 'cartes', nom: 'Cartes' },
   { id: 'parametres', nom: 'Paramètres' },
   { id: 'personnalisation', nom: 'Personnalisation' },
+  { id: 'journal', nom: 'Journal' },
 ];
 
 // --- Outils : copier, CSV, fiches à imprimer ------------------------------------------------
@@ -371,6 +374,7 @@ function actionsCarte(c) {
 }
 
 function puceStatut(c) {
+  if (c.statut === 'visible' && c.enRelecture) return html`<span class="puce puce--alerte">En relecture</span>`;
   if (c.statut === 'visible') return html`<span class="puce puce--succes">Visible</span>`;
   return html`<span class="puce puce--danger">${c.masqueePar === 'organisation' ? 'Masquée par l’organisation' : 'Masquée automatiquement'}</span>`;
 }
@@ -459,7 +463,7 @@ async function ongletCartes(zone) {
           <button type="button" class="filtre" data-filiere="toutes" aria-pressed="true">Toutes</button>
           ${FILIERES.map(
             (f) => html`<button type="button" class="filtre" data-filiere="${f.id}" aria-pressed="false" style="--c:${f.couleur}">
-              <span class="pastille-filiere"></span>${f.nom}
+              <span class="pastille-filiere forme-${f.forme}"></span>${f.nom}
             </button>`,
           )}
         </div>
@@ -475,10 +479,14 @@ async function ongletCartes(zone) {
               <option value="visible">Visibles</option>
               <option value="masquee">Masquées</option>
               <option value="signalee">Avec signalements</option>
+              <option value="relecture">En relecture</option>
             </select>
           </div>
+          <button type="button" class="btn btn--petit btn--secondaire" data-zip>${icone('telecharger')} Toutes les cartes en PNG (ZIP)</button>
         </div>
+        <p class="progression-zip discret petit" data-progression hidden></p>
       </div>
+      <div class="atelier-export" data-atelier-export aria-hidden="true"></div>
       <p class="resultat-galerie mono" aria-live="polite"></p>
       <div class="grille-admin"></div>`,
   );
@@ -490,7 +498,13 @@ async function ongletCartes(zone) {
       (c) =>
         (filtres.filiere === 'toutes' || c.filiere === filtres.filiere) &&
         (filtres.statut === 'toutes' ||
-          (filtres.statut === 'signalee' ? c.nbSignalements > 0 : c.statut === filtres.statut)) &&
+          (filtres.statut === 'signalee'
+            ? c.nbSignalements > 0
+            : filtres.statut === 'relecture'
+              ? c.enRelecture
+              : filtres.statut === 'visible'
+                ? c.statut === 'visible' && !c.enRelecture
+                : c.statut === filtres.statut)) &&
         (!q || normaliser(`${c.nom} ${c.auteur} ${c.sousTitre}`).includes(q)),
     );
     resultat.textContent = pluriel(liste.length, 'carte');
@@ -526,6 +540,86 @@ async function ongletCartes(zone) {
     rendre();
   });
   rendre();
+
+  // Export en lot : chaque carte (face et dos) rendue hors écran puis capturée en PNG, le tout dans un ZIP.
+  zone.querySelector('[data-zip]').addEventListener('click', async (ev) => {
+    const bouton = ev.currentTarget;
+    const progression = zone.querySelector('[data-progression]');
+    const atelier = zone.querySelector('[data-atelier-export]');
+    const publiees = cartes.filter((c) => c.statut === 'visible' && !c.enRelecture);
+    if (!publiees.length) return toast('Aucune carte publiée à exporter.', 'erreur');
+    bouton.disabled = true;
+    progression.hidden = false;
+    const fichiers = [];
+    const nomFichier = (c) => `${String(c.id).padStart(3, '0')}-${c.nom.normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase()}`;
+    try {
+      monter(atelier, rendreDos({ largeur: 300 }));
+      await new Promise((r) => setTimeout(r, 100));
+      fichiers.push({ nom: 'dos.png', donnees: await capturerCarteEnPng(atelier.querySelector('.carte')) });
+      for (const [i, c] of publiees.entries()) {
+        progression.textContent = `Carte ${i + 1} / ${publiees.length} : ${c.nom}`;
+        monter(atelier, rendreCarte({ ...c, statut: 'visible' }, { largeur: 300 }));
+        const img = atelier.querySelector('img');
+        if (img && !img.complete) await new Promise((r) => (img.onload = img.onerror = r));
+        fichiers.push({ nom: `${nomFichier(c)}.png`, donnees: await capturerCarteEnPng(atelier.querySelector('.carte')) });
+      }
+      telechargerBlob(fabriquerZip(fichiers), `cartes-${new Date().toISOString().slice(0, 10)}.zip`);
+      progression.textContent = `${publiees.length} cartes exportées.`;
+    } catch (err) {
+      toast(err.message, 'erreur');
+      progression.hidden = true;
+    } finally {
+      atelier.replaceChildren();
+      bouton.disabled = false;
+    }
+  });
+}
+
+// --- Onglet Journal : qui a fait quoi -------------------------------------------------------------
+
+const LIBELLES_ACTIONS = {
+  'comptes.crees': 'Comptes créés',
+  'compte.renomme': 'Nom corrigé',
+  'compte.role': 'Rôle changé',
+  'compte.mot-de-passe': 'Mot de passe réinitialisé',
+  'compte.supprime': 'Compte supprimé',
+  'carte.validee': 'Carte validée (relecture)',
+  'carte.masquee': 'Carte masquée',
+  'carte.retablie': 'Carte rétablie',
+  'carte.supprimee': 'Carte supprimée',
+  parametres: 'Paramètres modifiés',
+  textes: 'Textes modifiés',
+  logo: 'Logo téléversé',
+  sauvegarde: 'Sauvegarde téléchargée',
+};
+
+async function ongletJournal(zone) {
+  const lignes = await api('/admin/journal');
+  monter(
+    zone,
+    html`<section class="panneau">
+      <h2>Historique des actions</h2>
+      <p class="discret">Les 300 dernières actions de l’organisation et des éditeurs (validations). Utile si une décision est contestée.</p>
+      ${lignes.length === 0
+        ? html`<div class="vide"><p>Rien pour l’instant.</p></div>`
+        : html`<div class="table-defilante">
+            <table class="tableau tableau--journal">
+              <thead><tr><th scope="col">Quand</th><th scope="col">Qui</th><th scope="col">Action</th><th scope="col">Cible</th><th scope="col">Détail</th></tr></thead>
+              <tbody>
+                ${lignes.map(
+                  (l) => html`<tr>
+                    <td class="mono petit">${formatDate(l.date)}</td>
+                    <td class="mono">@${l.acteur}</td>
+                    <td>${LIBELLES_ACTIONS[l.action] ?? l.action}</td>
+                    <td>${l.cible}</td>
+                    <td class="discret petit">${l.detail}</td>
+                  </tr>`,
+                )}
+              </tbody>
+            </table>
+          </div>`}
+    </section>`,
+  );
 }
 
 // --- Onglet Paramètres ---------------------------------------------------------------------------
@@ -564,6 +658,10 @@ async function ongletParametres(zone) {
           <input id="par-seuil" name="seuil" type="number" min="1" max="50" step="1" value="${p.seuilSignalements}" />
           <span class="champ__aide">Nombre de signalements (de personnes différentes) qui masquent une carte.</span>
         </div>
+        <label class="case" style="margin-bottom:1rem">
+          <input type="checkbox" name="relecture" ${p.relecture ? html`checked` : ''} />
+          <span><strong>Relecture avant publication</strong><br /><span class="champ__aide">Une carte nouvelle ou modifiée n’est visible de tous qu’après validation par un autre éditeur. Désactiver publie les cartes en attente.</span></span>
+        </label>
         <div class="champ">
           <label for="par-limite">Cartes maximum par éditeur</label>
           <input id="par-limite" name="limite" type="number" min="0" max="500" step="1" value="${p.limiteCartes}" />
@@ -615,6 +713,7 @@ async function ongletParametres(zone) {
             campagneFin: depuisChampDate(form.fin.value),
             seuilSignalements: Number(form.seuil.value),
             limiteCartes: Number(form.limite.value),
+            relecture: form.relecture.checked,
             promo: form.promo.value,
           },
         });
@@ -846,17 +945,36 @@ const AFFICHEURS = {
   cartes: ongletCartes,
   parametres: ongletParametres,
   personnalisation: ongletPersonnalisation,
+  journal: ongletJournal,
 };
+
+// Rappel si la dernière sauvegarde téléchargée date de plus de 24 h (pas en démonstration).
+function rappelSauvegarde(resume) {
+  if (etat.serveur.demo) return '';
+  const age = resume.derniereSauvegarde ? Date.now() - Date.parse(resume.derniereSauvegarde) : Infinity;
+  if (age < 24 * 3600 * 1000) return '';
+  return html`<div class="rappel-sauvegarde">
+    ${icone('cadenas')}
+    <span>
+      ${resume.derniereSauvegarde
+        ? `Dernière sauvegarde téléchargée le ${formatDate(resume.derniereSauvegarde)}.`
+        : 'Aucune sauvegarde téléchargée pour l’instant.'}
+      Pense à en faire une chaque jour pendant la campagne.
+    </span>
+    <a class="btn btn--petit" href="/api/admin/sauvegarde" download>${icone('telecharger')} Sauvegarder maintenant</a>
+  </div>`;
+}
 
 function enteteResume(resume, onglet) {
   const badges = { comptes: resume.comptes, signalements: resume.aTraiter, cartes: resume.cartes };
-  return html`<div class="entete-page">
+  return html`${rappelSauvegarde(resume)}
+    <div class="entete-page">
       <div>
         <p class="surtitre">Espace organisateurs</p>
         <h1>Organisation</h1>
         <p>
           ${pluriel(resume.comptes, 'participant')}, dont ${resume.enAttente} pas encore connecté(s) ·
-          ${resume.certificats} certificat(s) signé(s) · ${pluriel(resume.cartes, 'carte')}${resume.masquees > 0 ? `, ${resume.masquees} masquée(s)` : ''}.
+          ${resume.certificats} certificat(s) signé(s) · ${pluriel(resume.cartes, 'carte')}${resume.masquees > 0 ? `, ${resume.masquees} masquée(s)` : ''}${resume.enRelecture > 0 ? `, ${resume.enRelecture} en relecture` : ''}.
         </p>
       </div>
     </div>

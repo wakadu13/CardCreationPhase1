@@ -54,6 +54,7 @@ export function afficher(racine) {
           <h1>Règles du jeu</h1>
           <div class="texte-riche">${enBloc('regles.intro')}</div>
         </div>
+        <button type="button" class="btn btn--secondaire sans-impression" data-imprimer>${icone('imprimer')} Imprimer (A4)</button>
       </div>
 
       <div class="regles">
@@ -139,7 +140,7 @@ export function afficher(racine) {
                     const f = filiere(id);
                     const cible = filiere(avantageContre(id));
                     return html`<li>
-                      <strong><span class="pastille-filiere" style="--c:${f.couleur}"></span> ${f.nom} domine ${cible.nom}</strong>
+                      <strong><span class="pastille-filiere forme-${f.forme}" style="--c:${f.couleur}"></span> ${f.nom} domine ${cible.nom}</strong>
                       ${!estVide(`cycle.${id}`) && html`<span>${enLigne(`cycle.${id}`)}</span>`}
                     </li>`;
                   })}
@@ -183,6 +184,7 @@ export function afficher(racine) {
   );
 
   rendreInclinable(racine.querySelector('[data-inclinable]'), 10);
+  racine.querySelector('[data-imprimer]').addEventListener('click', () => window.print());
   racine.querySelector('.regles__sommaire').addEventListener('click', (ev) => {
     const lien = ev.target.closest('[data-ancre]');
     if (!lien) return;

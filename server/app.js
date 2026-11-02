@@ -94,6 +94,7 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
       },
       demo: config.demo,
       limiteCartes: config.limiteCartes,
+      relecture: config.relecture,
       logos: urlsLogos(db),
       seuilSignalements: config.seuilSignalements,
       versionCertificat: VERSION_CERTIFICAT,

@@ -96,24 +96,38 @@ function chargerBibliothequeImage() {
   return bibliothequeImage;
 }
 
-// Télécharge l'élément .carte en PNG (3× la taille affichée, pour l'impression).
-export async function telechargerCarteEnImage(element, nomFichier) {
+// Capture l'élément .carte en PNG (3× la taille affichée, pour l'impression). Renvoie une data URL.
+async function capturerCarte(element) {
   const lib = await chargerBibliothequeImage();
   const carte = element.classList.contains('carte') ? element : element.querySelector('.carte');
   const transformation = carte.style.transform;
   carte.style.transform = 'none';
   carte.classList.remove('est-inclinee');
   try {
-    const url = await lib.toPng(carte, { pixelRatio: 3, cacheBust: true, style: { boxShadow: 'none', transform: 'none' } });
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${nomFichier}.png`;
-    document.body.append(a);
-    a.click();
-    a.remove();
+    return await lib.toPng(carte, { pixelRatio: 3, cacheBust: true, style: { boxShadow: 'none', transform: 'none' } });
   } finally {
     carte.style.transform = transformation;
   }
+}
+
+// Octets du PNG (pour un ZIP).
+export async function capturerCarteEnPng(element) {
+  const url = await capturerCarte(element);
+  const binaire = atob(url.split(',')[1]);
+  const octets = new Uint8Array(binaire.length);
+  for (let i = 0; i < binaire.length; i++) octets[i] = binaire.charCodeAt(i);
+  return octets;
+}
+
+// Télécharge l'élément .carte en PNG.
+export async function telechargerCarteEnImage(element, nomFichier) {
+  const url = await capturerCarte(element);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${nomFichier}.png`;
+  document.body.append(a);
+  a.click();
+  a.remove();
 }
 
 const mouvementReduit = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;

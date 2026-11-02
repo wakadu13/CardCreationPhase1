@@ -1,5 +1,5 @@
 import { FILIERES, MOTIFS_SIGNALEMENT } from '/shared/regles.js';
-import { actualiser } from '../app.js';
+import { actualiser, naviguer } from '../app.js';
 import { api } from '../api.js';
 import { rendreCarte, rendreInclinable } from '../carte.js';
 import { etat, formatDate, formatRebours, statutCampagne, utilisateur } from '../etat.js';
@@ -30,8 +30,10 @@ function emplacement(carte, ouverte) {
         </div>`
       : s.total > 0 &&
         html`<p class="alveole__info">${icone('drapeau')} ${s.total} signalement${s.total > 1 ? 's' : ''} (masquage à ${etat.serveur.seuilSignalements})</p>`}
+    ${carte.enRelecture && !masquee && html`<p class="alveole__info alveole__info--relecture">${icone('oeil')} En relecture : visible de tous dès qu’un autre éditeur l’aura validée.</p>`}
     <div class="groupe-boutons alveole__actions">
       ${ouverte && !masquee && html`<a class="btn btn--petit btn--secondaire" href="#/atelier/${carte.id}">${icone('crayon')} Modifier</a>`}
+      ${ouverte && html`<button type="button" class="btn btn--petit btn--secondaire" data-dupliquer="${carte.id}" title="Créer une variante">${icone('copier')} Dupliquer</button>`}
       <button type="button" class="btn btn--petit btn--secondaire" data-supprimer="${carte.id}" data-nom="${carte.nom}">${icone('poubelle')} Supprimer</button>
     </div>
   </div>`;
@@ -74,7 +76,7 @@ function panneauCampagne(stats) {
       <ul class="barres">
         ${FILIERES.map(
           (f) => html`<li style="--c:${f.couleur}">
-            <span class="barres__nom" title="${f.domaine}"><span class="pastille-filiere"></span>${f.nom}</span>
+            <span class="barres__nom" title="${f.domaine}"><span class="pastille-filiere forme-${f.forme}"></span>${f.nom}</span>
             <span class="barres__piste"><span class="barres__valeur" style="width:${(stats.parFiliere[f.id] / max) * 100}%"></span></span>
             <span class="barres__n mono">${stats.parFiliere[f.id]}</span>
           </li>`,
@@ -139,6 +141,18 @@ async function charger(main) {
 export async function afficher(main) {
   await charger(main);
   main.addEventListener('click', async (ev) => {
+    const dupliquer = ev.target.closest('[data-dupliquer]');
+    if (dupliquer) {
+      try {
+        const copie = await api(`/cartes/${dupliquer.dataset.dupliquer}/dupliquer`, { methode: 'POST', corps: {} });
+        toast(`« ${copie.nom} » créée : à toi de la modifier.`);
+        await actualiser();
+        naviguer(`/atelier/${copie.id}`);
+      } catch (err) {
+        toast(err.message, 'erreur');
+      }
+      return;
+    }
     const bouton = ev.target.closest('[data-supprimer]');
     if (!bouton) return;
     const ok = await confirmer({

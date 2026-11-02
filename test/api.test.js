@@ -20,7 +20,8 @@ let base;
 let db;
 let admin;
 
-const ENV = { CAMPAGNE_DEBUT: DEBUT.toISOString(), CAMPAGNE_FIN: FIN.toISOString(), SEUIL_SIGNALEMENTS: '3' };
+// Relecture désactivée pour les scénarios généraux ; un test dédié l'active.
+const ENV = { CAMPAGNE_DEBUT: DEBUT.toISOString(), CAMPAGNE_FIN: FIN.toISOString(), SEUIL_SIGNALEMENTS: '3', RELECTURE: '0' };
 
 before(async () => {
   db = ouvrirBase(':memory:');
@@ -367,12 +368,53 @@ test('sauvegarde complète : réservée aux organisateurs, fichier SQLite valide
   assert.equal(r.status, 200);
   const octets = Buffer.from(r.corps);
   assert.equal(octets.subarray(0, 15).toString(), 'SQLite format 3');
+  assert.ok((await admin.get('/api/admin/resume')).corps.derniereSauvegarde);
   const chemin = join(tmpdir(), `as-de-salon-sauvegarde-${process.pid}.sqlite`);
   writeFileSync(chemin, octets);
   const copie = new DatabaseSync(chemin);
   assert.ok(copie.prepare(`SELECT COUNT(*) AS n FROM utilisateurs WHERE identifiant = 'curieux3'`).get().n === 1);
   copie.close();
   rmSync(chemin, { force: true });
+});
+
+test('relecture : une carte n’est publiée qu’après validation par un autre éditeur', async () => {
+  assert.equal((await admin.put('/api/admin/parametres', { seuilSignalements: 3, relecture: true })).status, 200);
+  const auteur = await editeur('relu');
+  const collegue = await editeur('relecteur');
+  const lecteur = await participant('lecteur');
+  const { corps: c } = await auteur.post('/api/cartes', carte('À relire'));
+  assert.equal(c.enRelecture, true);
+  // Invisible des participants, visible des éditeurs avec son statut
+  assert.equal((await lecteur.get(`/api/cartes/${c.id}`)).status, 404);
+  assert.ok(!(await lecteur.get('/api/cartes')).corps.some((x) => x.id === c.id));
+  assert.ok((await collegue.get('/api/cartes')).corps.some((x) => x.id === c.id && x.enRelecture));
+  assert.equal((await lecteur.post(`/api/cartes/${c.id}/signalements`, { motif: 'autre' })).status, 404);
+  // L'auteur ne peut pas se valider lui-même, un collègue si
+  assert.equal((await auteur.post(`/api/cartes/${c.id}/valider`)).status, 403);
+  assert.equal((await lecteur.post(`/api/cartes/${c.id}/valider`)).status, 403);
+  const validee = await collegue.post(`/api/cartes/${c.id}/valider`);
+  assert.equal(validee.status, 200);
+  assert.equal(validee.corps.enRelecture, false);
+  assert.equal((await lecteur.get(`/api/cartes/${c.id}`)).status, 200);
+  assert.equal((await collegue.post(`/api/cartes/${c.id}/valider`)).status, 409);
+  // Une modification repasse en relecture ; l'organisateur peut valider n'importe quelle carte
+  assert.equal((await auteur.put(`/api/cartes/${c.id}`, carte('À relire encore'))).corps.enRelecture, true);
+  assert.equal((await admin.post(`/api/cartes/${c.id}/valider`)).status, 200);
+  // Duplication : copie à mon nom, en relecture
+  const copie = await collegue.post(`/api/cartes/${c.id}/dupliquer`);
+  assert.equal(copie.status, 201);
+  assert.equal(copie.corps.nom, 'À relire encore (copie)');
+  assert.equal(copie.corps.auteur, 'relecteur');
+  assert.equal(copie.corps.enRelecture, true);
+  assert.equal((await lecteur.post(`/api/cartes/${c.id}/dupliquer`)).status, 403);
+  // Désactiver la relecture publie les brouillons en attente
+  assert.equal((await admin.put('/api/admin/parametres', { seuilSignalements: 3, relecture: false })).status, 200);
+  assert.equal((await lecteur.get(`/api/cartes/${copie.corps.id}`)).status, 200);
+  // Le journal garde la trace
+  const journal = (await admin.get('/api/admin/journal')).corps;
+  assert.ok(journal.some((l) => l.action === 'carte.validee' && l.acteur === 'relecteur'));
+  assert.ok(journal.some((l) => l.action === 'parametres'));
+  assert.equal((await lecteur.get('/api/admin/journal')).status, 403);
 });
 
 test('le dernier organisateur ne peut pas supprimer son compte, et le compte admin n’est créé qu’une fois', async () => {
@@ -409,7 +451,7 @@ test('paramètres de campagne modifiables par les organisateurs et conservés en
   assert.equal(config.promo, 'Promo Test');
   assert.equal(config.seuilSignalements, 1);
 
-  assert.equal((await admin.put('/api/admin/parametres', { promo: '', campagneDebut: DEBUT, campagneFin: FIN, seuilSignalements: 3 })).status, 200);
+  assert.equal((await admin.put('/api/admin/parametres', { promo: '', campagneDebut: DEBUT, campagneFin: FIN, seuilSignalements: 3, relecture: false })).status, 200);
 });
 
 test('personnalisation des textes : réservée aux organisateurs, validée, conservée en base', async () => {

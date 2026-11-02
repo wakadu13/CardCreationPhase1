@@ -8,6 +8,7 @@ import { genererMotDePasse, IDENTIFIANT, identifiantDepuisNom, identifiantLibre,
 import { enregistrerParametres, statutCampagne } from '../config.js';
 import { transaction } from '../db.js';
 import { ErreurClient, idParam } from '../erreurs.js';
+import { journaliser, lireJournal } from '../journal.js';
 import { copierBase } from '../sauvegarde.js';
 import { enregistrerTextes, textesEffectifs, textesParDefaut } from '../textes.js';
 import { COLONNES, formaterCarte } from './cartes.js';
@@ -38,6 +39,8 @@ export function routesAdmin({ db, config, maintenant }) {
   r.get('/admin/resume', (_req, res) => {
     const un = (sql) => db.prepare(sql).get().n;
     res.json({
+      derniereSauvegarde: config.derniereSauvegarde,
+      enRelecture: un(`SELECT COUNT(*) AS n FROM cartes WHERE statut = 'visible' AND en_relecture = 1`),
       comptes: un(`SELECT COUNT(*) AS n FROM utilisateurs WHERE role != 'admin'`),
       editeurs: un(`SELECT COUNT(*) AS n FROM utilisateurs WHERE role = 'editeur'`),
       organisateurs: un(`SELECT COUNT(*) AS n FROM utilisateurs WHERE role = 'admin'`),
@@ -132,6 +135,7 @@ export function routesAdmin({ db, config, maintenant }) {
         return { identifiant, nomComplet: l.nomComplet, role, motDePasse: motsDePasse[i] };
       });
     });
+    journaliser(db, req, 'comptes.crees', { cible: `${crees.length} compte(s) ${role}`, detail: crees.map((c) => c.identifiant).join(', ') }, maintenant());
     res.status(201).json({ comptes: crees });
   });
 
@@ -151,6 +155,7 @@ export function routesAdmin({ db, config, maintenant }) {
     if (homonyme && homonyme.id !== compte.id) throw new ErreurClient(`Un compte existe déjà pour « ${nom} » (@${homonyme.identifiant}).`, 409);
     db.prepare('UPDATE utilisateurs SET nom_complet = ? WHERE id = ?').run(nom, compte.id);
     db.prepare('UPDATE certificats SET nom_complet = ? WHERE utilisateur_id = ?').run(nom, compte.id);
+    journaliser(db, req, 'compte.renomme', { cible: `@${compte.identifiant}`, detail: nom }, maintenant());
     res.json({ ok: true });
   });
 
@@ -161,6 +166,7 @@ export function routesAdmin({ db, config, maintenant }) {
     if (!ROLES.includes(role)) throw new ErreurClient('Rôle inconnu.');
     if (compte.id === req.utilisateur.id) throw new ErreurClient('Tu ne peux pas changer ton propre rôle.');
     db.prepare('UPDATE utilisateurs SET role = ? WHERE id = ?').run(role, compte.id);
+    journaliser(db, req, 'compte.role', { cible: `@${compte.identifiant}`, detail: `${compte.role} → ${role}` }, maintenant());
     res.json({ ok: true });
   });
 
@@ -168,13 +174,16 @@ export function routesAdmin({ db, config, maintenant }) {
   r.post('/admin/comptes/:id/mot-de-passe', async (req, res) => {
     const compte = compteCible(req);
     if (compte.id === req.utilisateur.id) throw new ErreurClient('Change ton propre mot de passe depuis la page Compte.');
-    res.json({ identifiant: compte.identifiant, motDePasse: await reinitialiserMotDePasse(db, compte.id) });
+    const motDePasse = await reinitialiserMotDePasse(db, compte.id);
+    journaliser(db, req, 'compte.mot-de-passe', { cible: `@${compte.identifiant}` }, maintenant());
+    res.json({ identifiant: compte.identifiant, motDePasse });
   });
 
   r.delete('/admin/comptes/:id', (req, res) => {
     const compte = compteCible(req);
     if (compte.id === req.utilisateur.id) throw new ErreurClient('Tu ne peux pas supprimer ton propre compte ici.');
     db.prepare('DELETE FROM utilisateurs WHERE id = ?').run(compte.id);
+    journaliser(db, req, 'compte.supprime', { cible: `@${compte.identifiant}` }, maintenant());
     res.json({ ok: true });
   });
 
@@ -218,28 +227,36 @@ export function routesAdmin({ db, config, maintenant }) {
 
   function carteCible(req) {
     const id = idParam(req);
-    if (!db.prepare('SELECT 1 FROM cartes WHERE id = ?').get(id)) throw new ErreurClient('Carte introuvable.', 404);
-    return id;
+    const carte = db.prepare('SELECT id, nom FROM cartes WHERE id = ?').get(id);
+    if (!carte) throw new ErreurClient('Carte introuvable.', 404);
+    return carte;
   }
 
   r.post('/admin/cartes/:id/masquer', (req, res) => {
-    db.prepare(`UPDATE cartes SET statut = 'masquee', masquee_par = 'organisation' WHERE id = ?`).run(carteCible(req));
+    const carte = carteCible(req);
+    db.prepare(`UPDATE cartes SET statut = 'masquee', masquee_par = 'organisation' WHERE id = ?`).run(carte.id);
+    journaliser(db, req, 'carte.masquee', { cible: `#${carte.id} ${carte.nom}` }, maintenant());
     res.json({ ok: true });
   });
 
   // Écarte les signalements actuels et réaffiche la carte.
   // Les personnes qui ont déjà signalé ne peuvent pas la re-signaler.
   r.post('/admin/cartes/:id/retablir', (req, res) => {
-    const id = carteCible(req);
-    db.prepare(`UPDATE signalements SET statut = 'classe' WHERE carte_id = ?`).run(id);
-    db.prepare(`UPDATE cartes SET statut = 'visible', masquee_par = NULL WHERE id = ?`).run(id);
+    const carte = carteCible(req);
+    const { changes } = db.prepare(`UPDATE signalements SET statut = 'classe' WHERE carte_id = ? AND statut = 'actif'`).run(carte.id);
+    db.prepare(`UPDATE cartes SET statut = 'visible', masquee_par = NULL WHERE id = ?`).run(carte.id);
+    journaliser(db, req, 'carte.retablie', { cible: `#${carte.id} ${carte.nom}`, detail: `${changes} signalement(s) classé(s)` }, maintenant());
     res.json({ ok: true });
   });
 
   r.delete('/admin/cartes/:id', (req, res) => {
-    db.prepare('DELETE FROM cartes WHERE id = ?').run(carteCible(req));
+    const carte = carteCible(req);
+    db.prepare('DELETE FROM cartes WHERE id = ?').run(carte.id);
+    journaliser(db, req, 'carte.supprimee', { cible: `#${carte.id} ${carte.nom}` }, maintenant());
     res.json({ ok: true });
   });
+
+  r.get('/admin/journal', (_req, res) => res.json(lireJournal(db)));
 
   // --- Réglages de la campagne ----------------------------------------------------------------
 
@@ -249,6 +266,7 @@ export function routesAdmin({ db, config, maintenant }) {
     campagneFin: config.campagneFin?.toISOString() ?? null,
     seuilSignalements: config.seuilSignalements,
     limiteCartes: config.limiteCartes,
+    relecture: config.relecture,
     statut: statutCampagne(config, maintenant()),
   });
 
@@ -272,7 +290,11 @@ export function routesAdmin({ db, config, maintenant }) {
     const limite = b.limiteCartes === undefined ? config.limiteCartes : Number(b.limiteCartes);
     if (!Number.isInteger(limite) || limite < 0 || limite > 500) throw new ErreurClient('La limite de cartes va de 0 (sans limite) à 500.');
 
-    enregistrerParametres(db, config, { promo, campagneDebut: debut, campagneFin: fin, seuilSignalements: seuil, limiteCartes: limite });
+    const relecture = b.relecture === undefined ? config.relecture : Boolean(b.relecture);
+    enregistrerParametres(db, config, { promo, campagneDebut: debut, campagneFin: fin, seuilSignalements: seuil, limiteCartes: limite, relecture });
+    // Relecture désactivée : les brouillons en attente sont publiés.
+    if (!relecture) db.exec('UPDATE cartes SET en_relecture = 0');
+    journaliser(db, req, 'parametres', { detail: `promo « ${promo} », seuil ${seuil}, limite ${limite}, relecture ${relecture ? 'oui' : 'non'}` }, maintenant());
     // Un seuil abaissé s'applique tout de suite aux cartes déjà signalées.
     const { changes: masquees } = db
       .prepare(
@@ -292,6 +314,7 @@ export function routesAdmin({ db, config, maintenant }) {
 
   r.put('/admin/personnalisation', (req, res) => {
     enregistrerTextes(db, config, req.body?.valeurs);
+    journaliser(db, req, 'textes', { detail: Object.keys(req.body?.valeurs ?? {}).join(', ') }, maintenant());
     res.json({ valeurs: textesEffectifs(config), defauts: textesParDefaut(config) });
   });
 
@@ -299,10 +322,12 @@ export function routesAdmin({ db, config, maintenant }) {
 
   // Copie de toute la base (comptes, cartes, images, textes, logos) : à télécharger régulièrement.
   // Pour restaurer : remplacer le fichier DB_PATH par cette copie, serveur arrêté.
-  r.get('/admin/sauvegarde', async (_req, res) => {
+  r.get('/admin/sauvegarde', async (req, res) => {
     const date = maintenant().toISOString().replace(/[:.]/g, '-');
     const chemin = join(tmpdir(), `as-de-salon-${date}-${process.pid}.sqlite`);
     await copierBase(db, chemin);
+    enregistrerParametres(db, config, { derniereSauvegarde: maintenant().toISOString() });
+    journaliser(db, req, 'sauvegarde', {}, maintenant());
     res.download(chemin, `sauvegarde-${date.slice(0, 10)}.sqlite`, () => rmSync(chemin, { force: true }));
   });
 
@@ -313,7 +338,7 @@ export function routesAdmin({ db, config, maintenant }) {
     const lignes = db
       .prepare(
         `SELECT ${COLONNES}, c.image, c.image_type FROM cartes c JOIN utilisateurs u ON u.id = c.auteur_id
-         WHERE c.statut = 'visible' ORDER BY c.id`,
+         WHERE c.statut = 'visible' AND c.en_relecture = 0 ORDER BY c.id`,
       )
       .all();
     const cartes = lignes.map((l) => {

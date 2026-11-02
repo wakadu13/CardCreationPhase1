@@ -30,6 +30,9 @@ export function lireConfig(env = process.env) {
     campagneDebut: date(env.CAMPAGNE_DEBUT, 'CAMPAGNE_DEBUT'),
     campagneFin: date(env.CAMPAGNE_FIN, 'CAMPAGNE_FIN'),
     seuilSignalements: entier(env.SEUIL_SIGNALEMENTS, 3),
+    // Relecture : une carte n'est publiée qu'après validation par un second éditeur
+    relecture: env.RELECTURE ? env.RELECTURE === '1' : true,
+    derniereSauvegarde: null,
     // Cartes maximum par éditeur (0 = sans limite)
     limiteCartes: Number.parseInt(env.LIMITE_CARTES ?? '', 10) >= 0 ? Number.parseInt(env.LIMITE_CARTES, 10) : 0,
     adminIdentifiant: env.ADMIN_IDENTIFIANT || 'admin',
@@ -61,6 +64,8 @@ const PARAMETRES = {
   campagneFin: { lire: (v) => (v ? new Date(v) : null), ecrire: (v) => v?.toISOString() ?? null },
   seuilSignalements: { lire: (v) => Number(v), ecrire: (v) => String(v) },
   limiteCartes: { lire: (v) => Number(v), ecrire: (v) => String(v) },
+  relecture: { lire: (v) => v === '1', ecrire: (v) => (v ? '1' : '0') },
+  derniereSauvegarde: { lire: (v) => v || null, ecrire: (v) => v },
 };
 
 // Applique à config les réglages déjà enregistrés en base.

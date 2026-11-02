@@ -1,4 +1,5 @@
 import { BONUS_AVANTAGE, FILIERES, MOTIFS_SIGNALEMENT, avantageContre, faiblesseContre, filiere } from '/shared/regles.js';
+import { naviguer } from '../app.js';
 import { api } from '../api.js';
 import { rendreCarte, rendreDos, rendreInclinable, telechargerCarteEnImage } from '../carte.js';
 import { etat, formatDate, statutCampagne, utilisateur } from '../etat.js';
@@ -92,24 +93,58 @@ function dialogueCarte(carte, surChangement) {
       </div>
       <div class="detail-carte__infos">
         <dl class="fiche">
-          <div><dt>Filière</dt><dd><span class="pastille-filiere" style="--c:${f?.couleur}"></span> ${f?.nom} · ${f?.domaine}</dd></div>
+          <div><dt>Filière</dt><dd><span class="pastille-filiere forme-${f?.forme}" style="--c:${f?.couleur}"></span> ${f?.nom} · ${f?.domaine}</dd></div>
           <div><dt>Avantage / faiblesse</dt><dd>+${BONUS_AVANTAGE} contre ${filiere(avantageContre(carte.filiere))?.nom} · subit +${BONUS_AVANTAGE} face à ${filiere(faiblesseContre(carte.filiere))?.nom}</dd></div>
           <div><dt>Conçue par</dt><dd>@${carte.auteur}</dd></div>
           <div><dt>Numéro</dt><dd class="mono">N° ${String(carte.id).padStart(3, '0')}</dd></div>
           <div><dt>Créée le</dt><dd>${formatDate(carte.creeLe)}</dd></div>
         </dl>
+        ${carte.enRelecture &&
+        html`<div class="relecture-bloc">
+          <p class="puce puce--alerte">${icone('oeil')} En relecture</p>
+          ${carte.estAMoi
+            ? html`<p class="discret petit">Un autre éditeur doit la valider avant qu’elle soit visible de tous.</p>`
+            : utilisateur().estEditeur &&
+              html`<p class="discret petit">Relis-la : si elle respecte le certificat, valide-la pour la publier.</p>
+                <button type="button" class="btn" data-valider>${icone('verifie')} Valider et publier</button>`}
+        </div>`}
         ${carte.estAMoi
           ? html`<p class="discret">C’est l’une de tes cartes.</p>
               <div class="groupe-boutons">
                 ${ouverte && carte.statut === 'visible' && html`<a class="btn btn--secondaire" href="#/atelier/${carte.id}">${icone('crayon')} Modifier</a>`}
-                <a class="btn btn--secondaire" href="#/hangar">Voir mon hangar</a>
+                <a class="btn btn--secondaire" href="#/hangar">Mes cartes</a>
               </div>`
-          : carte.signaleeParMoi
+          : carte.enRelecture
+            ? ''
+            : carte.signaleeParMoi
             ? html`<p class="puce puce--danger">${icone('drapeau')} Tu as signalé cette carte</p>`
             : html`<p class="discret petit">Cette carte va trop loin ? Le signalement est anonyme.</p>
                 <button type="button" class="btn btn--secondaire" data-signaler>${icone('drapeau')} Signaler</button>`}
+        ${utilisateur().estEditeur && ouverte && html`<p class="petit"><button type="button" class="lien-bouton" data-dupliquer>${icone('copier', 'icone-texte')} Dupliquer pour en faire une variante</button></p>`}
       </div>
     </div>`,
+  });
+  d.querySelector('[data-valider]')?.addEventListener('click', async (ev) => {
+    await pendant(ev.currentTarget, async () => {
+      try {
+        await api(`/cartes/${carte.id}/valider`, { methode: 'POST', corps: {} });
+        d.close();
+        toast(`« ${carte.nom} » est publiée.`);
+        surChangement();
+      } catch (err) {
+        toast(err.message, 'erreur');
+      }
+    });
+  });
+  d.querySelector('[data-dupliquer]')?.addEventListener('click', async () => {
+    try {
+      const copie = await api(`/cartes/${carte.id}/dupliquer`, { methode: 'POST', corps: {} });
+      d.close();
+      toast(`« ${copie.nom} » créée dans tes cartes.`);
+      naviguer(`/atelier/${copie.id}`);
+    } catch (err) {
+      toast(err.message, 'erreur');
+    }
   });
   rendreInclinable(d.querySelector('[data-inclinable]'), 10);
   d.querySelector('[data-retourner]').addEventListener('click', () => d.querySelector('[data-retournable]').classList.toggle('est-retournee'));
@@ -132,7 +167,7 @@ function dialogueCarte(carte, surChangement) {
 
 export async function afficher(racine) {
   let cartes = await api('/cartes');
-  const filtres = { filiere: 'toutes', recherche: '', tri: 'recentes', miennes: false };
+  const filtres = { filiere: 'toutes', recherche: '', tri: 'recentes', miennes: false, relecture: false };
 
   monter(
     racine,
@@ -148,7 +183,7 @@ export async function afficher(racine) {
           <button type="button" class="filtre" data-filiere="toutes" aria-pressed="true">Toutes</button>
           ${FILIERES.map(
             (f) => html`<button type="button" class="filtre" data-filiere="${f.id}" aria-pressed="false" style="--c:${f.couleur}">
-              <span class="pastille-filiere"></span>${f.nom} <span class="filtre__domaine">${f.domaine}</span>
+              <span class="pastille-filiere forme-${f.forme}"></span>${f.nom} <span class="filtre__domaine">${f.domaine}</span>
             </button>`,
           )}
         </div>
@@ -161,7 +196,8 @@ export async function afficher(racine) {
             <label for="gal-tri" class="sr-only">Trier</label>
             <select id="gal-tri">${Object.entries(TRIS).map(([k, t]) => html`<option value="${k}">${t.nom}</option>`)}</select>
           </div>
-          ${utilisateur().estEditeur && html`<label class="case case--compacte"><input type="checkbox" id="gal-miennes" /><span>Mes cartes</span></label>`}
+          ${utilisateur().estEditeur && html`<label class="case case--compacte"><input type="checkbox" id="gal-miennes" /><span>Mes cartes</span></label>
+            <label class="case case--compacte"><input type="checkbox" id="gal-relecture" /><span>À relire</span></label>`}
         </div>
       </div>
       <p class="resultat-galerie mono" aria-live="polite"></p>
@@ -176,6 +212,7 @@ export async function afficher(racine) {
     const liste = cartes
       .filter((c) => filtres.filiere === 'toutes' || c.filiere === filtres.filiere)
       .filter((c) => !filtres.miennes || c.estAMoi)
+      .filter((c) => !filtres.relecture || c.enRelecture)
       .filter(
         (c) =>
           !q ||
@@ -198,7 +235,7 @@ export async function afficher(racine) {
     monter(
       grille,
       liste.map(
-        (c) => html`<button type="button" class="carte-bouton" data-carte="${c.id}" aria-label="Voir la carte ${c.nom}, par ${c.auteur}">
+        (c) => html`<button type="button" class="carte-bouton ${c.enRelecture ? 'carte-bouton--relecture' : ''}" data-carte="${c.id}" aria-label="Voir la carte ${c.nom}, par ${c.auteur}${c.enRelecture ? ', en relecture' : ''}">
           ${rendreCarte(c, { largeur: 220 })}
         </button>`,
       ),
@@ -230,6 +267,10 @@ export async function afficher(racine) {
   });
   racine.querySelector('#gal-tri').addEventListener('change', (ev) => {
     filtres.tri = ev.target.value;
+    rendreGrille();
+  });
+  racine.querySelector('#gal-relecture')?.addEventListener('change', (ev) => {
+    filtres.relecture = ev.target.checked;
     rendreGrille();
   });
   racine.querySelector('#gal-miennes')?.addEventListener('change', (ev) => {
