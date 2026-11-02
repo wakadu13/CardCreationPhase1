@@ -1,3 +1,6 @@
+import { rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Router } from 'express';
 import { VERSION_CERTIFICAT } from '../../shared/certificat.js';
 import { exigerAdmin, hacherMotDePasse } from '../auth.js';
@@ -5,6 +8,7 @@ import { genererMotDePasse, IDENTIFIANT, identifiantDepuisNom, identifiantLibre,
 import { enregistrerParametres, statutCampagne } from '../config.js';
 import { transaction } from '../db.js';
 import { ErreurClient, idParam } from '../erreurs.js';
+import { copierBase } from '../sauvegarde.js';
 import { enregistrerTextes, textesEffectifs, textesParDefaut } from '../textes.js';
 import { COLONNES, formaterCarte } from './cartes.js';
 
@@ -289,6 +293,17 @@ export function routesAdmin({ db, config, maintenant }) {
   r.put('/admin/personnalisation', (req, res) => {
     enregistrerTextes(db, config, req.body?.valeurs);
     res.json({ valeurs: textesEffectifs(config), defauts: textesParDefaut(config) });
+  });
+
+  // --- Sauvegarde complète ----------------------------------------------------------------------
+
+  // Copie de toute la base (comptes, cartes, images, textes, logos) : à télécharger régulièrement.
+  // Pour restaurer : remplacer le fichier DB_PATH par cette copie, serveur arrêté.
+  r.get('/admin/sauvegarde', async (_req, res) => {
+    const date = maintenant().toISOString().replace(/[:.]/g, '-');
+    const chemin = join(tmpdir(), `as-de-salon-${date}-${process.pid}.sqlite`);
+    await copierBase(db, chemin);
+    res.download(chemin, `sauvegarde-${date.slice(0, 10)}.sqlite`, () => rmSync(chemin, { force: true }));
   });
 
   // --- Export ------------------------------------------------------------------------------------

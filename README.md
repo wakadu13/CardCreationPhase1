@@ -9,8 +9,8 @@ Design façon **Balatro** (tapis de jeu, écran CRT, typo pixel, boutons en reli
 | ![Accueil](docs/apercus/accueil.jpg) | ![Atelier](docs/apercus/atelier.jpg) |
 | **Galerie** | **Organisation : comptes et rôles** |
 | ![Galerie](docs/apercus/galerie.jpg) | ![Comptes](docs/apercus/organisation-comptes.jpg) |
-| **Proposition de combat** | **Cycle des filières** |
-| ![Combat](docs/apercus/combat.jpg) | ![Cycle](docs/apercus/cycle.jpg) |
+| **Simulateur de combat** | **Cycle des filières** |
+| ![Simulateur](docs/apercus/simulateur.jpg) | ![Cycle](docs/apercus/cycle.jpg) |
 
 ## Ce que fait le site
 
@@ -24,7 +24,7 @@ Design façon **Balatro** (tapis de jeu, écran CRT, typo pixel, boutons en reli
 - **Certificat de consentement obligatoire** avant de créer ou de voir la moindre carte : six engagements à cocher, au nom enregistré par les organisateurs. Le certificat est numéroté et imprimable.
 - **Registre des signataires** : la liste des personnes qu’on a le droit de mettre en scène sur une carte.
 - **Atelier** (éditeurs) : nom, sous-titre, filière, PV, illustration (recadrage et zoom), 1 ou 2 attaques, description. Aperçu en direct, jauge de puissance et « check-list prévol ».
-- **Galerie** avec filtres par filière, recherche, tri, et un bouton **Signaler** sur chaque carte.
+- **Galerie** avec filtres par filière, recherche, tri, et un bouton **Signaler** sur chaque carte. Chaque carte se retourne (dos aux couleurs du jeu) et se télécharge en **image PNG** haute définition, pour imprimer un vrai paquet.
 - **Hangar** : ses propres cartes, compte à rebours de la campagne, statistiques par filière.
 - **Retrait du consentement** : supprimer son compte efface ses cartes, ses signalements et son certificat.
 
@@ -77,6 +77,8 @@ Décrite sur la page **Combat** du site (`#/combat`) et dans `shared/combat.js`,
 - chaque mise a une **filière** : les cartes qui la dominent frappent à +30, celles qu’elle domine à −10 ;
 - les **effets** des cartes deviennent des actions de main (récupérer une main, doubler le multiplicateur sur pile ou face…) ;
 - six mises par partie, dont deux **boss** avec une règle spéciale ; en duel, le premier à passer la mise gagne la manche.
+
+Un **simulateur solo** est jouable sur le site (`#/combat/jouer`, bouton « Essayer le simulateur ») : il applique ces règles avec les cartes de la promo (ou les cartes d’exemple sans connexion) et sert à régler les cibles des mises. Le calcul est dans `shared/combat.js` (`calculerMain`), testé.
 
 ## Signalements
 
@@ -136,7 +138,10 @@ Si tu veux aussi jouer, crée-toi un compte participant séparé : le compte org
 
 ### Sauvegarde et tests
 
-La base de données est un seul fichier, `data/as-de-salon.sqlite` : pour la sauvegarder, il suffit de le copier. Rechargement automatique pendant le développement : `npm run dev`. Tests : `npm test`.
+La base de données est un seul fichier, `data/as-de-salon.sqlite`. Trois protections :
+- **Organisation › Paramètres › Télécharger la sauvegarde** : copie complète de la base (comptes, cartes et images, textes, logos) à mettre à l’abri régulièrement. Sur un hébergement sans disque permanent, c’est la seule protection.
+- Une **copie quotidienne** est écrite automatiquement dans `data/sauvegardes/` (7 jours conservés), sauf en mode démonstration.
+- Pour **restaurer** : serveur arrêté, remplacer le fichier de la base par la copie, puis redémarrer. Rechargement automatique pendant le développement : `npm run dev`. Tests : `npm test`.
 
 ## Configuration (`.env`)
 
@@ -211,13 +216,14 @@ shared/        Règles partagées navigateur + serveur
   exemples.js    cartes d'exemple (accueil, règles)
 server/        API Express + SQLite (node:sqlite)
   comptes.js     création des comptes, mots de passe provisoires, compte organisateur
+  sauvegarde.js  copies de la base (téléchargement et copie quotidienne)
   textes.js      textes personnalisés enregistrés en base
   compte-admin.js  commande de secours npm run compte-admin
   demo.js        données fictives du site de démonstration (DEMO=1)
   routes/        connexion et certificat, cartes et signalements, organisation, logos
 public/        Site (HTML, CSS et JavaScript sans étape de build)
   css/carte.css  design des cartes
-  js/pages/      une page par écran (admin.js = espace organisateurs)
+  js/pages/      une page par écran (admin.js = espace organisateurs, jeu.js = simulateur)
 test/          Tests (node --test)
 render.yaml    mise en ligne automatique sur Render
 .github/       tests automatiques sur GitHub (Actions)

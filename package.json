@@ -19,6 +19,7 @@
     "@fontsource/barlow-condensed": "5.2.8",
     "@fontsource/pixelify-sans": "5.2.7",
     "@fontsource/share-tech-mono": "5.2.7",
-    "express": "5.2.1"
+    "express": "5.2.1",
+    "html-to-image": "1.11.13"
   }
 }

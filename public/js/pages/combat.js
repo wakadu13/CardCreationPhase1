@@ -27,7 +27,10 @@ export function afficher(racine) {
           <h1>${COMBAT.titre}</h1>
           <p>${COMBAT.resume}</p>
         </div>
-        <a class="btn btn--secondaire" href="#/regles">${icone('retour')} Règles</a>
+        <div class="groupe-boutons">
+          <a class="btn" href="#/combat/jouer">Essayer le simulateur</a>
+          <a class="btn btn--secondaire" href="#/regles">${icone('retour')} Règles</a>
+        </div>
       </div>
 
       <div class="combat pile">

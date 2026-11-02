@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { rmSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -357,6 +357,21 @@ test('migration : une base de l’ancienne version accepte le rôle éditeur', (
   migree.prepare(`INSERT INTO utilisateurs (identifiant, hash, role, cree_le) VALUES ('nouveau', 'x', 'editeur', 'd')`).run();
   assert.equal(migree.prepare(`SELECT role FROM utilisateurs WHERE identifiant = 'nouveau'`).get().role, 'editeur');
   migree.close();
+  rmSync(chemin, { force: true });
+});
+
+test('sauvegarde complète : réservée aux organisateurs, fichier SQLite valide', async () => {
+  const curieux = await participant('curieux3');
+  assert.equal((await curieux.get('/api/admin/sauvegarde')).status, 403);
+  const r = await admin.get('/api/admin/sauvegarde');
+  assert.equal(r.status, 200);
+  const octets = Buffer.from(r.corps);
+  assert.equal(octets.subarray(0, 15).toString(), 'SQLite format 3');
+  const chemin = join(tmpdir(), `as-de-salon-sauvegarde-${process.pid}.sqlite`);
+  writeFileSync(chemin, octets);
+  const copie = new DatabaseSync(chemin);
+  assert.ok(copie.prepare(`SELECT COUNT(*) AS n FROM utilisateurs WHERE identifiant = 'curieux3'`).get().n === 1);
+  copie.close();
   rmSync(chemin, { force: true });
 });
 

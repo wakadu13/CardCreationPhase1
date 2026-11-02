@@ -67,6 +67,55 @@ export function rendreCarte(c, { largeur = 300, numero = c.id, classe = '', voil
   </article>`;
 }
 
+// Dos de carte : motif de jetons, cocarde et nom du jeu.
+export function rendreDos({ largeur = 300, classe = '' } = {}) {
+  const nom = etat.serveur?.nomJeu ?? 'Les As de Salon';
+  const promo = etat.serveur?.promo || 'Salon-de-Provence';
+  return html`<article class="carte carte--dos ${classe}" style="--w:${largeur}px" aria-label="Dos de carte">
+    <div class="carte__corps carte-dos">
+      <div class="carte-dos__cadre">
+        <span class="carte-dos__titre">${nom}</span>
+        <span class="carte-dos__cocarde"></span>
+        <span class="carte-dos__promo">${promo}</span>
+      </div>
+    </div>
+  </article>`;
+}
+
+let bibliothequeImage = null;
+// Charge html-to-image (version autonome servie par le site) à la première demande.
+function chargerBibliothequeImage() {
+  if (window.htmlToImage) return Promise.resolve(window.htmlToImage);
+  bibliothequeImage ??= new Promise((resoudre, rejeter) => {
+    const s = document.createElement('script');
+    s.src = '/lib/html-to-image/html-to-image.js';
+    s.onload = () => resoudre(window.htmlToImage);
+    s.onerror = () => rejeter(new Error('Outil d’export indisponible.'));
+    document.head.append(s);
+  });
+  return bibliothequeImage;
+}
+
+// Télécharge l'élément .carte en PNG (3× la taille affichée, pour l'impression).
+export async function telechargerCarteEnImage(element, nomFichier) {
+  const lib = await chargerBibliothequeImage();
+  const carte = element.classList.contains('carte') ? element : element.querySelector('.carte');
+  const transformation = carte.style.transform;
+  carte.style.transform = 'none';
+  carte.classList.remove('est-inclinee');
+  try {
+    const url = await lib.toPng(carte, { pixelRatio: 3, cacheBust: true, style: { boxShadow: 'none', transform: 'none' } });
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${nomFichier}.png`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+  } finally {
+    carte.style.transform = transformation;
+  }
+}
+
 const mouvementReduit = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Inclinaison 3D et reflet qui suit la souris.

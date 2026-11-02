@@ -1,9 +1,11 @@
 import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { creerApp } from './app.js';
 import { assurerAdmin } from './comptes.js';
 import { lireConfig, statutCampagne } from './config.js';
 import { ouvrirBase } from './db.js';
 import { remplirDemo } from './demo.js';
+import { planifierSauvegardes } from './sauvegarde.js';
 import { textesEffectifs } from './textes.js';
 
 if (existsSync('.env')) process.loadEnvFile('.env');
@@ -19,6 +21,8 @@ if (config.demo && admin.cree && config.adminMotDePasse) {
   db.prepare('UPDATE utilisateurs SET doit_changer_mdp = 0 WHERE identifiant = ?').run(admin.identifiant);
 }
 const demo = config.demo ? await remplirDemo(db, { motDePasse: config.demoMotDePasse }) : null;
+// Copie quotidienne de la base à côté d'elle (dossier sauvegardes/), 7 jours conservés.
+if (config.cheminBase !== ':memory:' && !config.demo) planifierSauvegardes(db, join(dirname(config.cheminBase), 'sauvegardes'));
 
 function encadre(lignes) {
   const largeur = Math.max(...lignes.map((l) => l.length)) + 4;

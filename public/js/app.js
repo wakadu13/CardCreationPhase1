@@ -17,6 +17,7 @@ const ROUTES = [
   { motif: /^\/galerie$/, page: 'galerie', acces: 'certificat' },
   { motif: /^\/registre$/, page: 'registre', acces: 'certificat' },
   { motif: /^\/combat$/, page: 'combat', acces: 'public' },
+  { motif: /^\/combat\/jouer$/, page: 'jeu', acces: 'public' },
   { motif: /^\/admin(?:\/(comptes|signalements|cartes|parametres|personnalisation))?$/, page: 'admin', acces: 'admin' },
 ];
 

@@ -1,6 +1,6 @@
 import { BONUS_AVANTAGE, FILIERES, MOTIFS_SIGNALEMENT, avantageContre, faiblesseContre, filiere } from '/shared/regles.js';
 import { api } from '../api.js';
-import { rendreCarte, rendreInclinable } from '../carte.js';
+import { rendreCarte, rendreDos, rendreInclinable, telechargerCarteEnImage } from '../carte.js';
 import { etat, formatDate, statutCampagne, utilisateur } from '../etat.js';
 import { html, monter } from '../html.js';
 import { icone } from '../icones.js';
@@ -80,7 +80,16 @@ function dialogueCarte(carte, surChangement) {
     titre: carte.nom,
     large: true,
     contenu: html`<div class="detail-carte">
-      <div class="detail-carte__visuel" data-inclinable>${rendreCarte(carte, { largeur: 340 })}</div>
+      <div class="detail-carte__visuel">
+        <div class="retournable" data-retournable>
+          <div class="retournable__face" data-inclinable>${rendreCarte(carte, { largeur: 340 })}</div>
+          <div class="retournable__dos">${rendreDos({ largeur: 340 })}</div>
+        </div>
+        <div class="groupe-boutons detail-carte__outils">
+          <button type="button" class="btn btn--petit btn--secondaire" data-retourner>${icone('retour')} Retourner</button>
+          <button type="button" class="btn btn--petit btn--secondaire" data-image>${icone('telecharger')} Image PNG</button>
+        </div>
+      </div>
       <div class="detail-carte__infos">
         <dl class="fiche">
           <div><dt>Filière</dt><dd><span class="pastille-filiere" style="--c:${f?.couleur}"></span> ${f?.nom} · ${f?.domaine}</dd></div>
@@ -103,6 +112,18 @@ function dialogueCarte(carte, surChangement) {
     </div>`,
   });
   rendreInclinable(d.querySelector('[data-inclinable]'), 10);
+  d.querySelector('[data-retourner]').addEventListener('click', () => d.querySelector('[data-retournable]').classList.toggle('est-retournee'));
+  d.querySelector('[data-image]').addEventListener('click', async (ev) => {
+    await pendant(ev.currentTarget, async () => {
+      try {
+        const retournee = d.querySelector('[data-retournable]').classList.contains('est-retournee');
+        const nom = carte.nom.normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+        await telechargerCarteEnImage(d.querySelector(retournee ? '.retournable__dos .carte' : '.retournable__face .carte'), retournee ? `dos-${nom}` : nom);
+      } catch (err) {
+        toast(err.message, 'erreur');
+      }
+    });
+  });
   d.querySelector('[data-signaler]')?.addEventListener('click', () => {
     d.close();
     dialogueSignalement(carte, surChangement);

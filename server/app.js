@@ -116,6 +116,7 @@ export function creerApp({ db, config, maintenant = () => new Date() }) {
       express.static(join(RACINE, 'node_modules', '@fontsource', police, 'files'), { maxAge: '30d', immutable: true }),
     );
   }
+  app.use('/lib/html-to-image', express.static(join(RACINE, 'node_modules', 'html-to-image', 'dist'), { maxAge: '30d', immutable: true }));
   app.use('/shared', express.static(join(RACINE, 'shared'), { maxAge: 0 }));
   app.use(express.static(join(RACINE, 'public'), { maxAge: 0 }));
 

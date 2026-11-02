@@ -579,6 +579,15 @@ async function ongletParametres(zone) {
       </form>
 
       <section class="panneau">
+        <h2>Sauvegarde</h2>
+        <p>
+          Copie complète de la base (comptes, cartes et images, signalements, textes, logos). À télécharger régulièrement :
+          sur un hébergement sans disque permanent, c’est la seule protection. Pour restaurer, remplacer le fichier de la base par cette copie, serveur arrêté.
+        </p>
+        <a class="btn" href="/api/admin/sauvegarde" download>${icone('telecharger')} Télécharger la sauvegarde (.sqlite)</a>
+      </section>
+
+      <section class="panneau">
         <h2>Préparer la phase 2</h2>
         <p>Exporte toutes les cartes visibles (avec leurs images) dans un fichier JSON, pour les importer dans le jeu.</p>
         <a class="btn btn--secondaire" href="/api/admin/export" download>${icone('telecharger')} Exporter les cartes (JSON)</a>

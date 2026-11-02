@@ -1,3 +1,5 @@
+import { BONUS_AVANTAGE, CYCLE, avantageContre, faiblesseContre } from './regles.js';
+
 // Proposition de système de combat pour la phase 2, inspirée de Balatro.
 // Tout est ici pour être affiché sur la page Combat et, plus tard, appliqué par le jeu.
 
@@ -84,3 +86,93 @@ export const COMBAT = {
     'Un « joker » par joueur : une carte choisie dans son paquet dont l’effet s’applique à chaque main.',
   ],
 };
+
+// --- Moteur : calcul d'une main ----------------------------------------------------------------
+// Utilisé par le simulateur (navigateur) et testé côté serveur. Les règles ci-dessus sont la
+// référence ; ce code les applique.
+
+
+export const MALUS_CYCLE = 10;
+
+export const COMBINAISONS = {
+  binome: { nom: 'Binôme', mult: 2 },
+  escadrille: { nom: 'Escadrille', mult: 4 },
+  promo: { nom: 'Promo', mult: 5 },
+  chaine: { nom: 'Chaîne de commandement', mult: 7 },
+  escadron: { nom: 'Escadron', mult: 10 },
+};
+
+// Combinaisons présentes dans une main (liste de cartes jouées, dans l'ordre).
+export function detecterCombinaisons(cartes) {
+  const trouvees = [];
+  const parFiliere = new Map();
+  for (const c of cartes) parFiliere.set(c.filiere, (parFiliere.get(c.filiere) ?? 0) + 1);
+  for (const [filiere, n] of parFiliere) {
+    if (n >= 5) trouvees.push({ id: 'escadron', filiere, ...COMBINAISONS.escadron });
+    else if (n >= 3) trouvees.push({ id: 'escadrille', filiere, ...COMBINAISONS.escadrille });
+    else if (n === 2) trouvees.push({ id: 'binome', filiere, ...COMBINAISONS.binome });
+  }
+  if (CYCLE.every((f) => parFiliere.has(f))) trouvees.push({ id: 'promo', ...COMBINAISONS.promo });
+  for (let i = 0; i + 2 < cartes.length; i++) {
+    const [a, b, c] = cartes.slice(i, i + 3).map((x) => x.filiere);
+    if (avantageContre(a) === b && avantageContre(b) === c) {
+      trouvees.push({ id: 'chaine', ...COMBINAISONS.chaine });
+      break;
+    }
+  }
+  return trouvees;
+}
+
+// selection : [{ carte, attaque }] ; filiereMise : filière de la mise en cours.
+// pileOuFace : fonction qui renvoie true pour « face » (remplacée dans les tests).
+export function calculerMain(selection, filiereMise, { pileOuFace = () => Math.random() < 0.5 } = {}) {
+  const cartes = selection.map((s) => s.carte);
+  const effets = selection.map((s) => s.attaque?.effet ?? 'aucun');
+  const brouillage = effets.includes('brouillage');
+  const lignes = [];
+  const actions = [];
+  let jetons = 0;
+
+  selection.forEach(({ carte, attaque }, i) => {
+    const effet = effets[i];
+    let degats = attaque?.degats ?? 0;
+    let note = '';
+    if (avantageContre(carte.filiere) === filiereMise) {
+      degats += BONUS_AVANTAGE;
+      note = ` +${BONUS_AVANTAGE} (domine ${filiereMise.toUpperCase()})`;
+    } else if (faiblesseContre(carte.filiere) === filiereMise && !brouillage) {
+      degats = Math.max(0, degats - MALUS_CYCLE);
+      note = ` −${MALUS_CYCLE} (dominée par ${filiereMise.toUpperCase()})`;
+    }
+    const pv = Math.floor((carte.pv ?? 0) / 10);
+    if (effet === 'contrecoup') {
+      lignes.push(`${carte.nom} : Contrecoup, 0 jeton`);
+      return;
+    }
+    jetons += degats + pv;
+    lignes.push(`${carte.nom} : ${attaque?.nom ?? '—'} ${attaque?.degats ?? 0}${note} + ${pv} PV = ${degats + pv}`);
+  });
+
+  const combinaisons = detecterCombinaisons(cartes);
+  let multiplicateur = 1 + combinaisons.reduce((s, c) => s + c.mult, 0);
+  for (const c of combinaisons) lignes.push(`${c.nom} : ×${c.mult} en plus`);
+
+  if (effets.includes('paralysie')) {
+    const face = pileOuFace();
+    if (face) {
+      multiplicateur *= 2;
+      lignes.push('Paralysie : face, multiplicateur doublé !');
+    } else lignes.push('Paralysie : pile, rien ne se passe.');
+  }
+  if (brouillage) lignes.push('Brouillage : pas de pénalité de cycle sur cette main.');
+  for (const [i, effet] of effets.entries()) {
+    if (effet === 'soin') actions.push({ type: 'main', n: 1, texte: 'Soin : +1 main' });
+    if (effet === 'renfort') actions.push({ type: 'defausse', n: 1, texte: 'Appel en renfort : +1 défausse' });
+    if (effet === 'ravitaillement') actions.push({ type: 'pioche', n: 2, texte: 'Ravitaillement : +2 cartes à la prochaine pioche' });
+    if (effet === 'blindage') actions.push({ type: 'cible', n: -100, texte: 'Blindage : prochaine mise −100' });
+    if (effet === 'epuisement') actions.push({ type: 'retirer', carte: cartes[i], texte: `Épuisement : ${cartes[i].nom} retirée pour la manche` });
+  }
+  const score = jetons * multiplicateur;
+  lignes.push(`Score : ${jetons} × ${multiplicateur} = ${score}`);
+  return { jetons, multiplicateur, score, combinaisons, lignes, actions };
+}

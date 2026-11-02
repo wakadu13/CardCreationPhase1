@@ -2481,3 +2481,194 @@ code {
   color: var(--or-clair);
   font-weight: 700;
 }
+
+/* Simulateur de combat */
+.jeu {
+  display: grid;
+  gap: 1rem;
+}
+
+.jeu__tableau {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1.4fr;
+  gap: 0.75rem;
+}
+
+.tuile {
+  display: grid;
+  gap: 0.25rem;
+  align-content: start;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: 3px solid var(--contour);
+  background: var(--nuit-2);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35);
+}
+
+.tuile__lib {
+  font-family: var(--police-titre);
+  font-size: 0.8rem;
+  color: var(--texte-3);
+}
+
+.tuile strong {
+  font-family: var(--police-titre);
+  font-size: 1.3rem;
+}
+
+.tuile--mise {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 22%, var(--nuit-2));
+}
+
+.tuile--boss {
+  border-color: var(--rouge-cocarde);
+  box-shadow: 0 5px 0 var(--rouge-sombre), 0 0 20px rgba(254, 95, 85, 0.35);
+}
+
+.tuile__mise-filiere {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--police-titre);
+  color: var(--texte);
+}
+
+.tuile__mise-filiere svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tuile__mise-filiere small {
+  color: var(--texte-2);
+  font-family: var(--police-texte);
+}
+
+.tuile__regle {
+  font-size: 0.85rem;
+  color: #ffd5d8;
+}
+
+.tuile__score {
+  font-size: 2rem !important;
+  color: var(--or-clair);
+}
+
+.tuile__score.est-gagne {
+  color: var(--succes);
+}
+
+.tuile__score small {
+  font-size: 0.9rem;
+  color: var(--texte-3);
+}
+
+.jauge-score {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--contour);
+  overflow: hidden;
+}
+
+.jauge-score span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--bleu-cocarde), var(--or));
+}
+
+.tuile--compteurs span {
+  font-family: var(--police-titre);
+}
+
+.chiffre-bleu {
+  color: #7cc4ff;
+}
+
+.chiffre-rouge {
+  color: var(--rouge-cocarde);
+}
+
+.formule-mini {
+  font-family: var(--police-titre);
+  font-size: 1.4rem;
+}
+
+.jeu__main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 0.5rem;
+  padding: 1rem 0.5rem 0.5rem;
+  min-height: 260px;
+}
+
+.jeu__carte {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: center;
+  transition: transform 0.15s;
+}
+
+.jeu__carte.est-choisie {
+  transform: translateY(-18px);
+}
+
+.jeu__carte.est-choisie .carte {
+  box-shadow:
+    0.3em 0.3em 0 rgba(0, 0, 0, 0.45),
+    0 0 0 0.25em var(--or-clair);
+}
+
+.jeu__attaque {
+  width: 150px;
+  min-height: 30px;
+  padding: 0.15rem 1.6rem 0.2rem 0.4rem;
+  font-size: 0.75rem;
+  border-width: 2px;
+  box-shadow: none;
+}
+
+.jeu__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.jeu__fin {
+  text-align: center;
+  padding: 2rem;
+}
+
+.jeu__journal summary {
+  font-family: var(--police-titre);
+  cursor: pointer;
+}
+
+.jeu__journal ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.2rem;
+  color: var(--texte-2);
+}
+
+@media (max-width: 900px) {
+  .jeu__tableau {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .jeu__tableau {
+    grid-template-columns: 1fr;
+  }
+
+  .jeu__main .carte {
+    --w: 120px !important;
+  }
+
+  .jeu__attaque {
+    width: 120px;
+  }
+}
